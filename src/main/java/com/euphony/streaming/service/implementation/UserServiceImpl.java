@@ -81,22 +81,7 @@ public class UserServiceImpl implements IUserService {
                 // 1. Asignar contraseña al usuario en Keycloak
                 setUserPassword(userId, userRequestDTO.getPassword());
 
-                // 2. Guardar el usuario en la base de datos
-                UsuarioEntity usuarioEntity = new UsuarioEntity();
-                usuarioEntity.setIdUsuario(UUID.fromString(userId));
-                usuarioEntity.setUsername(userRequestDTO.getUsername());
-                usuarioEntity.setEmail(userRequestDTO.getEmail());
-                usuarioEntity.setNombre(userRequestDTO.getFirstName());
-                usuarioEntity.setApellido(userRequestDTO.getLastName());
-                usuarioEntity.setIsActive(true);
-                usuarioRepository.save(usuarioEntity);
-
-                // 3. Crear un perfil de usuario vacío
-                PerfilUsuarioEntity perfilUsuarioEntity = new PerfilUsuarioEntity();
-                perfilUsuarioEntity.setUsuario(usuarioEntity);
-                perfilUsuarioRepository.save(perfilUsuarioEntity);
-
-                // 4. Asignar roles en Keycloak y la base de datos
+                // 2. Asignar roles en Keycloak
                 assignUserRoles(userId, userRequestDTO.getRoles());
 
                 log.info("Usuario creado con éxito: {}", userRepresentation.getId());
@@ -155,37 +140,6 @@ public class UserServiceImpl implements IUserService {
             throw new UserUpdateException("Error al actualizar el usuario en Keycloak", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        try{
-            // Actualizar el usuario en la base de datos solo si el campo no está vacío o nulo
-            if (userRequestDTO.getUsername() != null && !userRequestDTO.getUsername().isEmpty()) {
-                usuarioEntity.setUsername(userRequestDTO.getUsername());
-            }
-            if (userRequestDTO.getEmail() != null && !userRequestDTO.getEmail().isEmpty()) {
-                usuarioEntity.setEmail(userRequestDTO.getEmail());
-            }
-            if (userRequestDTO.getFirstName() != null && !userRequestDTO.getFirstName().isEmpty()) {
-                usuarioEntity.setNombre(userRequestDTO.getFirstName());
-            }
-            if (userRequestDTO.getLastName() != null && !userRequestDTO.getLastName().isEmpty()) {
-                usuarioEntity.setApellido(userRequestDTO.getLastName());
-            }
-
-            // Guardar el usuario actualizado en la base de datos
-            usuarioRepository.save(usuarioEntity);
-            log.info("Usuario actualizado en la base de datos: {}", usuarioEntity.getIdUsuario());
-        } catch (Exception e) {
-            // Si ocurre un error al actualizar la base de datos, revertir la actualización en Keycloak
-            try {
-                // Revertir cambios en Keycloak
-                userResource.get(usuarioEntity.getIdUsuario().toString()).update(originalUserRepresentation);
-                log.info("Reversión de usuario en Keycloak exitosa: {}", usuarioEntity.getIdUsuario());
-            } catch (Exception rollbackException) {
-                log.error("Error al revertir el usuario en Keycloak: {}. Detalles: {}", usuarioEntity.getIdUsuario(), rollbackException.getMessage());
-                throw new UserUpdateException("Error crítico: fallo en la actualización de la base de datos y no se pudo revertir en Keycloak", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            throw new UserUpdateException("Error al actualizar el usuario en la base de datos", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
     }
 
 
@@ -213,9 +167,6 @@ public class UserServiceImpl implements IUserService {
             throw new UserDeletionException("Error al eliminar el usuario en Keycloak", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        // Eliminar el usuario en la base de datos
-        usuarioRepository.deleteById(id);
-        log.info("Usuario eliminado de la base de datos: {}", id);
     }
 
     private void validateUserInput(UserRequestDTO userRequestDTO) {

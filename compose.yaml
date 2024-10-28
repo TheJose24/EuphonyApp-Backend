@@ -1,9 +1,31 @@
 services:
-  postgres:
-    image: 'postgres:latest'
+  db:
+    image: postgres:15
+    container_name: postgres_db
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: utpinos
+      POSTGRES_DB: euphony_dev_db
     ports:
-      - '5432'
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    ports:
+      - "8080:8080"
+    networks:
+      - mynetwork
+
+volumes:
+  db_data:
+
+networks:
+  mynetwork:
+    driver: bridge
