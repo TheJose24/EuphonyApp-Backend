@@ -39,13 +39,13 @@ public class ProfileUserServiceImpl implements IProfileUserService {
     public UserProfileResponseDTO searchProfileByUsuarioId(UUID usuarioId) {
         return perfilUsuarioRepository.findByUsuarioIdUsuario(usuarioId)
                 .map(this::mapToUserProfileResponseDTO)
-                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con id: " + usuarioId));
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con id: " + usuarioId, HttpStatus.NOT_FOUND));
     }
 
     @Override
     public void deleteProfile(UUID profileId) {
         PerfilUsuarioEntity perfilUsuarioEntity = perfilUsuarioRepository.findByUsuarioIdUsuario(profileId)
-                .orElseThrow(() -> new UserNotFoundException("Perfil de usuario no encontrado con id: " + profileId));
+                .orElseThrow(() -> new UserNotFoundException("Perfil de usuario no encontrado con id: " + profileId, HttpStatus.NOT_FOUND));
 
         if (perfilUsuarioEntity != null) {
             perfilUsuarioRepository.deleteById(perfilUsuarioEntity.getIdPerfil());
@@ -61,7 +61,7 @@ public class ProfileUserServiceImpl implements IProfileUserService {
             PerfilUsuarioEntity perfil = perfilUsuarioRepository.findByUsuarioIdUsuario(profileId)
                     .orElseThrow(() -> {
                         log.error("Usuario con ID {} no encontrado", profileId);
-                        return new UserNotFoundException("Usuario no encontrado con el ID proporcionado");
+                        return new UserNotFoundException("Usuario no encontrado con el ID proporcionado", HttpStatus.NOT_FOUND);
                     });
 
             // Actualizar los campos si son válidos
@@ -76,7 +76,7 @@ public class ProfileUserServiceImpl implements IProfileUserService {
             log.info("Perfil con ID {} actualizado con éxito", profileId);
         } catch (IllegalArgumentException e) {
             log.error("ID de perfil inválido: {}", profileId);
-            throw new IllegalArgumentException("ID de perfil inválido", e);
+            throw new UserUpdateException("ID de perfil inválido", e, HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             log.error("Error al actualizar el perfil de usuario con ID {}: {}", profileId, e.getMessage());
             throw new UserUpdateException("Error al actualizar el perfil de usuario", HttpStatus.INTERNAL_SERVER_ERROR);
