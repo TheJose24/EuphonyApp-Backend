@@ -1,10 +1,11 @@
 package com.euphony.streaming.exception.custom;
 
+import com.euphony.streaming.exception.HttpStatusProvider;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 @Getter
-public class UserCreationException extends RuntimeException {
+public class UserCreationException extends RuntimeException implements HttpStatusProvider {
 
     private final HttpStatus httpStatus;
 
@@ -21,6 +22,11 @@ public class UserCreationException extends RuntimeException {
     public UserCreationException(Throwable cause, HttpStatus httpStatus) {
         super(cause);
         this.httpStatus = httpStatus;
+    }
+
+    @Override
+    public HttpStatus getHttpStatus() {
+        return this.httpStatus;
     }
 
 }

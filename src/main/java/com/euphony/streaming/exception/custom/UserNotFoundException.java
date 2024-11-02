@@ -1,20 +1,34 @@
 package com.euphony.streaming.exception.custom;
 
-public class UserNotFoundException extends RuntimeException{
+import com.euphony.streaming.exception.HttpStatusProvider;
+import org.springframework.http.HttpStatus;
 
-        public UserNotFoundException() {
-            super();
-        }
+public class UserNotFoundException extends RuntimeException implements HttpStatusProvider {
 
-        public UserNotFoundException(String message) {
-            super(message);
-        }
+    private final HttpStatus httpStatus;
 
-        public UserNotFoundException(String message, Throwable cause) {
-            super(message, cause);
-        }
+    public UserNotFoundException(HttpStatus httpStatus) {
+        super();
+        this.httpStatus = httpStatus;
+    }
 
-        public UserNotFoundException(Throwable cause) {
-            super(cause);
-        }
+    public UserNotFoundException(String message, HttpStatus httpStatus) {
+        super(message);
+        this.httpStatus = httpStatus;
+    }
+
+    public UserNotFoundException(String message, Throwable cause, HttpStatus httpStatus) {
+        super(message, cause);
+        this.httpStatus = httpStatus;
+    }
+
+    public UserNotFoundException(Throwable cause, HttpStatus httpStatus) {
+        super(cause);
+        this.httpStatus = httpStatus;
+    }
+
+    @Override
+    public HttpStatus getHttpStatus() {
+        return this.httpStatus;
+    }
 }

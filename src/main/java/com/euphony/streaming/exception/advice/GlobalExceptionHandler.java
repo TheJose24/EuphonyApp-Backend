@@ -1,9 +1,7 @@
 package com.euphony.streaming.exception.advice;
 
-import com.euphony.streaming.exception.custom.UserCreationException;
-import com.euphony.streaming.exception.custom.UserDeletionException;
-import com.euphony.streaming.exception.custom.UserNotFoundException;
-import com.euphony.streaming.exception.custom.UserUpdateException;
+import com.euphony.streaming.exception.HttpStatusProvider;
+import com.euphony.streaming.exception.custom.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,6 +13,7 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -24,29 +23,26 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(UserCreationException.class)
-    public ResponseEntity<String> handleUserCreationException(UserCreationException ex) {
-        return new ResponseEntity<>(ex.getMessage(), ex.getHttpStatus());
-    }
-
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<String> handleUserNotFoundException(UserNotFoundException ex) {
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(UserUpdateException.class)
-    public ResponseEntity<String> handleUserUpdateException(UserUpdateException ex) {
-        return new ResponseEntity<>(ex.getMessage(), ex.getHttpStatus());
-    }
-
-    @ExceptionHandler(UserDeletionException.class)
-    public ResponseEntity<String> handleUserDeletionException(UserDeletionException ex) {
-        return new ResponseEntity<>(ex.getMessage(), ex.getHttpStatus());
+    // Manejo de excepciones para Usuarios
+    @ExceptionHandler({
+            UserCreationException.class,
+            UserNotFoundException.class,
+            UserUpdateException.class,
+            UserDeletionException.class
+    })
+    public ResponseEntity<String> handleUserExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGlobalException(Exception ex) {
-        return new ResponseEntity<>("Error interno del servidor: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>("Error interno del servidor. Por favor, intente más tarde.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    private HttpStatus getStatusFromException(RuntimeException ex) {
+        if (ex instanceof HttpStatusProvider) {
+            return ((HttpStatusProvider) ex).getHttpStatus();
+        }
+        return HttpStatus.BAD_REQUEST;
+    }
 }
