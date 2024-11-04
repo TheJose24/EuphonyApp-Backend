@@ -34,6 +34,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 
+    // Manejo de excepciones para Playlists
+    @ExceptionHandler({
+            PlaylistCreationException.class,
+            PlaylistNotFoundException.class,
+            PlaylistUpdateException.class,
+            PlaylistDeletionException.class,
+    })
+    public ResponseEntity<String> handlePlaylistExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGlobalException(Exception ex) {
         return new ResponseEntity<>("Error interno del servidor. Por favor, intente más tarde.", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -43,6 +54,6 @@ public class GlobalExceptionHandler {
         if (ex instanceof HttpStatusProvider) {
             return ((HttpStatusProvider) ex).getHttpStatus();
         }
-        return HttpStatus.BAD_REQUEST;
+        return HttpStatus.BAD_REQUEST;  // Default status if none provided
     }
 }
