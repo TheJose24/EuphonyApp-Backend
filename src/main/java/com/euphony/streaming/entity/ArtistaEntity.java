@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.Map;
 
@@ -29,7 +31,7 @@ public class ArtistaEntity {
     private String pais;
 
     @Column(name = "redes_sociales", columnDefinition = "json")
-    @ElementCollection
+    @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, String> redesSociales;
 
     @Column(name = "is_verified", nullable = false)
