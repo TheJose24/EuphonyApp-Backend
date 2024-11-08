@@ -1,7 +1,7 @@
 package com.euphony.streaming.listener;
 
 import com.euphony.streaming.event.UserProfileDeletedEvent;
-import com.euphony.streaming.exception.custom.UserDeletionException;
+import com.euphony.streaming.exception.custom.user.UserDeletionException;
 import com.euphony.streaming.util.KeycloakProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

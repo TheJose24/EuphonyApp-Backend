@@ -1,4 +1,4 @@
-package com.euphony.streaming.exception.custom;
+package com.euphony.streaming.exception.custom.user;
 
 import com.euphony.streaming.exception.HttpStatusProvider;
 import org.springframework.http.HttpStatus;
