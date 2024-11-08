@@ -2,9 +2,7 @@ package com.euphony.streaming.controller;
 
 import com.euphony.streaming.dto.request.PlaylistRequestDTO;
 import com.euphony.streaming.dto.response.PlaylistResponseDTO;
-import com.euphony.streaming.exception.custom.*;
 import com.euphony.streaming.service.implementation.PlaylistServiceImpl;
-import com.euphony.streaming.service.interfaces.IPlaylistService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
