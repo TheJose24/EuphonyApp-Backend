@@ -1,6 +1,10 @@
 package com.euphony.streaming.exception.advice;
 
 import com.euphony.streaming.exception.HttpStatusProvider;
+import com.euphony.streaming.exception.custom.artist.ArtistCreationException;
+import com.euphony.streaming.exception.custom.artist.ArtistDeletionException;
+import com.euphony.streaming.exception.custom.artist.ArtistNotFoundException;
+import com.euphony.streaming.exception.custom.artist.ArtistUpdateException;
 import com.euphony.streaming.exception.custom.genre.GenreCreationException;
 import com.euphony.streaming.exception.custom.genre.GenreDeletionException;
 import com.euphony.streaming.exception.custom.genre.GenreNotFoundException;
@@ -64,6 +68,17 @@ public class GlobalExceptionHandler {
             GenreDeletionException.class,
     })
     public ResponseEntity<String> handleGenreExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
+
+    // Manejo de excepciones para Artistas
+    @ExceptionHandler({
+            ArtistCreationException.class,
+            ArtistNotFoundException.class,
+            ArtistUpdateException.class,
+            ArtistDeletionException.class,
+    })
+    public ResponseEntity<String> handleArtistExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 
