@@ -2,7 +2,7 @@ package com.euphony.streaming.controller;
 
 import com.euphony.streaming.dto.request.UserRequestDTO;
 import com.euphony.streaming.dto.response.UserResponseDTO;
-import com.euphony.streaming.exception.custom.UserNotFoundException;
+import com.euphony.streaming.exception.custom.user.UserNotFoundException;
 import com.euphony.streaming.service.implementation.UserServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

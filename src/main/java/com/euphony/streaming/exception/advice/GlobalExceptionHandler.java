@@ -1,7 +1,18 @@
 package com.euphony.streaming.exception.advice;
 
 import com.euphony.streaming.exception.HttpStatusProvider;
-import com.euphony.streaming.exception.custom.*;
+import com.euphony.streaming.exception.custom.genre.GenreCreationException;
+import com.euphony.streaming.exception.custom.genre.GenreDeletionException;
+import com.euphony.streaming.exception.custom.genre.GenreNotFoundException;
+import com.euphony.streaming.exception.custom.genre.GenreUpdateException;
+import com.euphony.streaming.exception.custom.playlist.PlaylistCreationException;
+import com.euphony.streaming.exception.custom.playlist.PlaylistDeletionException;
+import com.euphony.streaming.exception.custom.playlist.PlaylistNotFoundException;
+import com.euphony.streaming.exception.custom.playlist.PlaylistUpdateException;
+import com.euphony.streaming.exception.custom.user.UserCreationException;
+import com.euphony.streaming.exception.custom.user.UserDeletionException;
+import com.euphony.streaming.exception.custom.user.UserNotFoundException;
+import com.euphony.streaming.exception.custom.user.UserUpdateException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -42,6 +53,17 @@ public class GlobalExceptionHandler {
             PlaylistDeletionException.class,
     })
     public ResponseEntity<String> handlePlaylistExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
+
+    // Manejo de excepciones para Géneros
+    @ExceptionHandler({
+            GenreCreationException.class,
+            GenreNotFoundException.class,
+            GenreUpdateException.class,
+            GenreDeletionException.class,
+    })
+    public ResponseEntity<String> handleGenreExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 

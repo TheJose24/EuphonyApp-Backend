@@ -1,4 +1,4 @@
-package com.euphony.streaming.exception.custom;
+package com.euphony.streaming.exception.custom.playlist;
 
 import com.euphony.streaming.exception.HttpStatusProvider;
 import lombok.Getter;
