@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
 
@@ -16,16 +17,17 @@ import java.time.LocalDateTime;
 public class SeguidoresArtistaEntity {
 
     @Id
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
     private UsuarioEntity usuario;
 
     @Id
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_artista", nullable = false)
     private ArtistaEntity artista;
 
-    @Column(name = "fecha_seguimiento", nullable = false)
+    @Column(name = "fecha_seguimiento", nullable = false, updatable = false)
+    @CreatedDate
     private LocalDateTime fechaSeguimiento;
 
 }
