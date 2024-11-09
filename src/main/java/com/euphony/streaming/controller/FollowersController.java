@@ -42,15 +42,18 @@ public class FollowersController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "201",
-                    description = "Usuario ahora sigue al artista"
+                    description = "Usuario ahora sigue al artista",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Solicitud inválida"
+                    description = "Solicitud inválida",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Usuario o artista no encontrado"
+                    description = "Usuario o artista no encontrado",
+                    content = @Content
             )
     })
     @PostMapping("/follow")
@@ -69,15 +72,18 @@ public class FollowersController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Usuario ha dejado de seguir al artista"
+                    description = "Usuario ha dejado de seguir al artista",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Solicitud inválida"
+                    description = "Solicitud inválida",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Usuario o artista no encontrado"
+                    description = "Usuario o artista no encontrado",
+                    content = @Content
             )
     })
     @DeleteMapping("/unfollow")
