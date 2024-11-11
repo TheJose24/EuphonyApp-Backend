@@ -16,6 +16,10 @@ import com.euphony.streaming.exception.custom.playlist.PlaylistCreationException
 import com.euphony.streaming.exception.custom.playlist.PlaylistDeletionException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistNotFoundException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistUpdateException;
+import com.euphony.streaming.exception.custom.subscription.SubscriptionCreationException;
+import com.euphony.streaming.exception.custom.subscription.SubscriptionDeletionException;
+import com.euphony.streaming.exception.custom.subscription.SubscriptionNotFoundException;
+import com.euphony.streaming.exception.custom.subscription.SubscriptionUpdateException;
 import com.euphony.streaming.exception.custom.user.UserCreationException;
 import com.euphony.streaming.exception.custom.user.UserDeletionException;
 import com.euphony.streaming.exception.custom.user.UserNotFoundException;
@@ -98,6 +102,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGlobalException(Exception ex) {
         return new ResponseEntity<>("Error interno del servidor. Por favor, intente más tarde.", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    // Manejo de excepciones para Suscripciones
+    @ExceptionHandler({
+            SubscriptionCreationException.class,
+            SubscriptionNotFoundException.class,
+            SubscriptionUpdateException.class,
+            SubscriptionDeletionException.class,
+    })
+    public ResponseEntity<String> handleSubscriptionExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 
     private HttpStatus getStatusFromException(RuntimeException ex) {
