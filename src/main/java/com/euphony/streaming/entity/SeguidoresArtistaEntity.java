@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -12,8 +13,11 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "SEGUIDORES_ARTISTA")
+@Table(name = "SEGUIDORES_ARTISTA", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"id_usuario", "id_artista"})
+})
 @IdClass(SeguidoresArtistaId.class)
+@EntityListeners(AuditingEntityListener.class)
 public class SeguidoresArtistaEntity {
 
     @Id
