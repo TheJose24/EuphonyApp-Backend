@@ -6,7 +6,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Getter
@@ -14,6 +17,7 @@ import java.util.Map;
 @NoArgsConstructor
 @Entity
 @Table(name = "ARTISTA")
+@EntityListeners(AuditingEntityListener.class)
 public class ArtistaEntity {
 
     @Id
@@ -36,4 +40,11 @@ public class ArtistaEntity {
 
     @Column(name = "is_verified", nullable = false)
     private Boolean isVerified = false;
+
+    @Column(name = "verification_date")
+    @CreatedDate
+    private LocalDateTime verificationDate;
+
+    @Column(name = "verification_reason", length = 500)
+    private String verificationReason;
 }

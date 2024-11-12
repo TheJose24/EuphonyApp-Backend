@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -11,8 +12,8 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "NOTIFICACIONES")
-public class NotificacionesEntity {
+@Table(name = "NOTIFICACIONES_USUARIO")
+public class NotificacionesUsuarioEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,13 +24,17 @@ public class NotificacionesEntity {
     @JoinColumn(name = "id_usuario", nullable = false)
     private UsuarioEntity usuario;
 
+    @Column(name = "titulo", nullable = false, length = 255)
+    private String titulo;
+
     @Column(name = "mensaje", nullable = false)
     private String mensaje;
 
     @Column(name = "leido", nullable = false)
-    private Boolean leido;
+    private Boolean leido = false;
 
     @Column(name = "fecha_envio", nullable = false)
+    @CreationTimestamp
     private LocalDateTime fechaEnvio;
 
 }

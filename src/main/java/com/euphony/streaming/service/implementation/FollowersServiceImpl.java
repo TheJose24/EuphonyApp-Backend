@@ -53,10 +53,13 @@ public class FollowersServiceImpl implements IFollowersService {
             validateRequest(request);
             validateUserAndArtistExist(request.getUserId(), request.getArtistId());
 
+            log.debug("Verificando si el usuario {} ya sigue al artista {}", request.getUserId(), request.getArtistId());
             if (isAlreadyFollowing(request.getUserId(), request.getArtistId())) {
                 String errorMessage = String.format(USUARIO_YA_SIGUE, request.getUserId(), request.getArtistId());
                 log.warn(errorMessage);
                 throw new FollowAlreadyExistsException(errorMessage, HttpStatus.CONFLICT);
+            } else {
+                log.debug("El usuario {} aún no sigue al artista {}", request.getUserId(), request.getArtistId());
             }
 
             createAndSaveFollowEntity(request);
@@ -182,8 +185,7 @@ public class FollowersServiceImpl implements IFollowersService {
     }
 
     private boolean isAlreadyFollowing(UUID userId, Long artistId) {
-        return seguidoresArtistaRepository
-                .existsByUsuarioIdUsuarioAndArtistaIdArtista(userId, artistId);
+        return seguidoresArtistaRepository.existsByUsuario_IdUsuarioAndArtista_IdArtista(userId, artistId);
     }
 
     private void createAndSaveFollowEntity(FollowersArtistRequestDTO request) {
