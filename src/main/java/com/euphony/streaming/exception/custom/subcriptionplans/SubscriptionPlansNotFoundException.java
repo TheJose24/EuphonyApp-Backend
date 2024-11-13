@@ -1,23 +1,23 @@
-package com.euphony.streaming.exception.custom.subscription;
+package com.euphony.streaming.exception.custom.subcriptionplans;
 
 import com.euphony.streaming.exception.HttpStatusProvider;
 import org.springframework.http.HttpStatus;
 
-public class SubscriptionNotFoundException extends RuntimeException implements HttpStatusProvider {
+public class SubscriptionPlansNotFoundException extends RuntimeException implements HttpStatusProvider {
 
     private final HttpStatus httpStatus;
 
-    public SubscriptionNotFoundException(String message, HttpStatus httpStatus) {
+    public SubscriptionPlansNotFoundException(String message, HttpStatus httpStatus) {
         super(message);
         this.httpStatus = httpStatus;
     }
 
-    public SubscriptionNotFoundException(String message, Throwable cause, HttpStatus httpStatus) {
+    public SubscriptionPlansNotFoundException(String message, Throwable cause, HttpStatus httpStatus) {
         super(message, cause);
         this.httpStatus = httpStatus;
     }
 
-    public SubscriptionNotFoundException(Throwable cause, HttpStatus httpStatus) {
+    public SubscriptionPlansNotFoundException(Throwable cause, HttpStatus httpStatus) {
         super(cause);
         this.httpStatus = httpStatus;
     }

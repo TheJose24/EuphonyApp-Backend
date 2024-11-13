@@ -16,10 +16,10 @@ import com.euphony.streaming.exception.custom.playlist.PlaylistCreationException
 import com.euphony.streaming.exception.custom.playlist.PlaylistDeletionException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistNotFoundException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistUpdateException;
-import com.euphony.streaming.exception.custom.subscription.SubscriptionCreationException;
-import com.euphony.streaming.exception.custom.subscription.SubscriptionDeletionException;
-import com.euphony.streaming.exception.custom.subscription.SubscriptionNotFoundException;
-import com.euphony.streaming.exception.custom.subscription.SubscriptionUpdateException;
+import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansCreationException;
+import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansDeletionException;
+import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansNotFoundException;
+import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansUpdateException;
 import com.euphony.streaming.exception.custom.user.UserCreationException;
 import com.euphony.streaming.exception.custom.user.UserDeletionException;
 import com.euphony.streaming.exception.custom.user.UserNotFoundException;
@@ -105,10 +105,10 @@ public class GlobalExceptionHandler {
     }
     // Manejo de excepciones para Suscripciones
     @ExceptionHandler({
-            SubscriptionCreationException.class,
-            SubscriptionNotFoundException.class,
-            SubscriptionUpdateException.class,
-            SubscriptionDeletionException.class,
+            SubscriptionPlansCreationException.class,
+            SubscriptionPlansNotFoundException.class,
+            SubscriptionPlansUpdateException.class,
+            SubscriptionPlansDeletionException.class,
     })
     public ResponseEntity<String> handleSubscriptionExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
