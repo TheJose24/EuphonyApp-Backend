@@ -3,9 +3,9 @@ package com.euphony.streaming.service.implementation;
 import com.euphony.streaming.dto.request.PlanesSuscripcionRequestDTO;
 import com.euphony.streaming.dto.response.PlanesSuscripcionResponseDTO;
 import com.euphony.streaming.entity.PlanesSuscripcionEntity;
-import com.euphony.streaming.exception.custom.subscription.SubscriptionCreationException;
-import com.euphony.streaming.exception.custom.subscription.SubscriptionDeletionException;
-import com.euphony.streaming.exception.custom.subscription.SubscriptionNotFoundException;
+import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansCreationException;
+import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansDeletionException;
+import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansNotFoundException;
 import com.euphony.streaming.repository.PlanesSuscripcionRepository;
 import com.euphony.streaming.service.interfaces.IPlanesSuscripcionService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.lang.reflect.Field;
+
+
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,59 +54,76 @@ public class PlanesSuscripcionServiceImpl implements IPlanesSuscripcionService {
     public PlanesSuscripcionResponseDTO getPlanById(Long id) {
         log.info("Buscando plan con ID: {}", id);
         PlanesSuscripcionEntity entity = repository.findById(id)
-                .orElseThrow(() -> new SubscriptionNotFoundException("Plan no encontrado con ID: " + id, HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new SubscriptionPlansNotFoundException("Plan no encontrado con ID: " + id, HttpStatus.NOT_FOUND));
         return mapToResponseDTO(entity);
     }
 
+
+    @Transactional
     @Override
     public PlanesSuscripcionResponseDTO updatePlan(Long id, PlanesSuscripcionRequestDTO requestDTO) {
         log.info("Actualizando plan de suscripción con ID: {}", id);
 
+        // Buscar la entidad por ID
         PlanesSuscripcionEntity entity = repository.findById(id)
-                .orElseThrow(() -> new SubscriptionNotFoundException("Plan no encontrado con ID: " + id, HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new SubscriptionPlansNotFoundException("Plan no encontrado con ID: " + id, HttpStatus.NOT_FOUND));
 
-        // Actualizar los campos del plan
-        entity.setNombrePlan(requestDTO.getPlanName());
-        entity.setPrecio(requestDTO.getPrice());
-        entity.setDuracion(requestDTO.getDuration());
-        entity.setDescripcion(requestDTO.getDescription());
-        entity.setIsActive(requestDTO.getIsActive());
+        // Actualizar los campos de la entidad solo si el valor en el DTO no es nulo
+        for (Field field : requestDTO.getClass().getDeclaredFields()) {
+            try {
+                field.setAccessible(true); // Hacer accesible el campo privado
+                Object value = field.get(requestDTO); // Obtener el valor del campo en el DTO
+                if (value != null) { // Si el valor no es nulo, actualiza el campo correspondiente en la entidad
+                    Field entityField = entity.getClass().getDeclaredField(field.getName()); // Obtener el campo correspondiente en la entidad
+                    entityField.setAccessible(true);
+                    entityField.set(entity, value); // Asignar el valor a la entidad
+                }
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                log.warn("No se pudo actualizar el campo: " + field.getName(), e);
+            }
+        }
 
+        // Guardar la entidad actualizada
         PlanesSuscripcionEntity updatedEntity = repository.save(entity);
         log.info("Plan actualizado exitosamente: {}", updatedEntity.getNombrePlan());
+
+        // Retornar la respuesta con el DTO mapeado
         return mapToResponseDTO(updatedEntity);
     }
+
+
+
 
     @Override
     public void deletePlan(Long id) {
         log.info("Eliminando plan con ID: {}", id);
 
         PlanesSuscripcionEntity entity = repository.findById(id)
-                .orElseThrow(() -> new SubscriptionNotFoundException("Plan no encontrado con ID: " + id, HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new SubscriptionPlansNotFoundException("Plan no encontrado con ID: " + id, HttpStatus.NOT_FOUND));
         try {
             repository.delete(entity);
             log.info("Plan eliminado exitosamente.");
         } catch (Exception ex) {
             log.error("Error al eliminar el plan con ID: {}", id, ex);
-            throw new SubscriptionDeletionException("Error al eliminar el plan", HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new SubscriptionPlansDeletionException("Error al eliminar el plan", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     private void validarCamposParaCreacion(PlanesSuscripcionRequestDTO requestDTO) {
         if (requestDTO.getPlanName() == null || requestDTO.getPlanName().isEmpty()) {
-            throw new SubscriptionCreationException("El campo 'planName' es obligatorio.", HttpStatus.BAD_REQUEST);
+            throw new SubscriptionPlansCreationException("El campo 'planName' es obligatorio.", HttpStatus.BAD_REQUEST);
         }
 
         if (requestDTO.getPrice() == null || requestDTO.getPrice() <= 0) {
-            throw new SubscriptionCreationException("El campo 'price' es obligatorio y debe ser mayor a 0.", HttpStatus.BAD_REQUEST);
+            throw new SubscriptionPlansCreationException("El campo 'price' es obligatorio y debe ser mayor a 0.", HttpStatus.BAD_REQUEST);
         }
 
         if (requestDTO.getDuration() == null || requestDTO.getDuration() <= 0) {
-            throw new SubscriptionCreationException("El campo 'duration' es obligatorio y debe ser mayor a 0.", HttpStatus.BAD_REQUEST);
+            throw new SubscriptionPlansCreationException("El campo 'duration' es obligatorio y debe ser mayor a 0.", HttpStatus.BAD_REQUEST);
         }
 
         if (requestDTO.getDescription() == null || requestDTO.getDescription().isEmpty()) {
-            throw new SubscriptionCreationException("El campo 'description' es obligatorio.", HttpStatus.BAD_REQUEST);
+            throw new SubscriptionPlansCreationException("El campo 'description' es obligatorio.", HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -111,7 +132,7 @@ public class PlanesSuscripcionServiceImpl implements IPlanesSuscripcionService {
         boolean exists = existingPlans.stream()
                 .anyMatch(plan -> plan.getNombrePlan().equalsIgnoreCase(planName));
         if (exists) {
-            throw new SubscriptionCreationException("El plan ya existe.", HttpStatus.CONFLICT);
+            throw new SubscriptionPlansCreationException("El plan ya existe.", HttpStatus.CONFLICT);
         }
     }
 
