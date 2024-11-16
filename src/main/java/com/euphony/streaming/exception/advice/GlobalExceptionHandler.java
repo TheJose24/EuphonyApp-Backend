@@ -108,7 +108,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             FileStorageException.class
     })
-    public ResponseEntity<String> handleAlbumExceptions(RuntimeException ex) {
+    public ResponseEntity<String> handleFileStorageExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 
