@@ -125,99 +125,33 @@ public class PlaylistServiceImpl implements IPlaylistService {
             throw new PlaylistCreationException("Ocurrió un error inesperado durante la creación de la playlist. Por favor, inténtelo nuevamente o contacte al administrador del sistema", HttpStatus.BAD_REQUEST);
         }
     }
+
     @Override
     @Transactional
     public void updatePlaylist(Long id, PlaylistRequestDTO playlistRequestDTO) {
         try {
             log.info("Iniciando validación de campos para la playlist ID: {}", id);
 
-            // Validación del ID
-            if (id <= 0) {
-                throw new PlaylistUpdateException(
-                        "El ID de la playlist no puede ser menor o igual a cero. ID proporcionado: " + id,
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            // Validación del nombre
-            if (playlistRequestDTO.getName() == null) {
-                throw new PlaylistUpdateException(
-                        "El nombre de la playlist es obligatorio y no puede ser nulo",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-            if (playlistRequestDTO.getName().trim().isEmpty()) {
-                throw new PlaylistUpdateException(
-                        "El nombre de la playlist no puede estar vacío o contener solo espacios",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-            if (playlistRequestDTO.getName().length() > 100) {
-                throw new PlaylistUpdateException(
-                        "El nombre de la playlist no puede exceder los 100 caracteres. Longitud actual: " +
-                                playlistRequestDTO.getName().length(),
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            // Validación de la descripción
-            if (playlistRequestDTO.getDescription() == null) {
-                throw new PlaylistUpdateException(
-                        "La descripción de la playlist es obligatoria y no puede ser nula",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-            if (playlistRequestDTO.getDescription().trim().isEmpty()) {
-                throw new PlaylistUpdateException(
-                        "La descripción de la playlist no puede estar vacía o contener solo espacios",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-            if (playlistRequestDTO.getDescription().length() > 500) {
-                throw new PlaylistUpdateException(
-                        "La descripción de la playlist no puede exceder los 500 caracteres. Longitud actual: " +
-                                playlistRequestDTO.getDescription().length(),
-                        HttpStatus.BAD_REQUEST
-                );
-            }
+            // Validaciones de parámetros
+            validateId(id);
+            validateField(playlistRequestDTO.getName(), "El nombre de la playlist es obligatorio y no puede ser nulo",
+                    "El nombre de la playlist no puede estar vacío o contener solo espacios",
+                    100, "nombre");
+            validateField(playlistRequestDTO.getDescription(), "La descripción de la playlist es obligatoria y no puede ser nula",
+                    "La descripción de la playlist no puede estar vacía o contener solo espacios",
+                    500, "descripción");
+            validateUrl(playlistRequestDTO.getCoverImage(), "La URL de la imagen de portada es obligatoria y no puede ser nula");
 
             // Validación del estado público
             if (playlistRequestDTO.getIsPublic() == null) {
-                throw new PlaylistUpdateException(
-                        "El estado público/privado de la playlist es obligatorio y no puede ser nulo",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            // Validación de la imagen de portada
-            if (playlistRequestDTO.getCoverImage() == null) {
-                throw new PlaylistUpdateException(
-                        "La URL de la imagen de portada es obligatoria y no puede ser nula",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-            if (playlistRequestDTO.getCoverImage().trim().isEmpty()) {
-                throw new PlaylistUpdateException(
-                        "La URL de la imagen de portada no puede estar vacía o contener solo espacios",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-            if (!playlistRequestDTO.getCoverImage().startsWith("http://") &&
-                    !playlistRequestDTO.getCoverImage().startsWith("https://")) {
-                throw new PlaylistUpdateException(
-                        "La URL de la imagen de portada debe comenzar con 'http://' o 'https://'",
-                        HttpStatus.BAD_REQUEST
-                );
+                throw new PlaylistUpdateException("El estado público/privado de la playlist es obligatorio y no puede ser nulo",
+                        HttpStatus.BAD_REQUEST);
             }
 
             // Validación de existencia de la playlist
             PlaylistEntity playlist = playlistRepository.findById(id)
-                    .orElseThrow(() -> {
-                        log.error("No se encontró la playlist con ID: {}", id);
-                        return new PlaylistNotFoundException(
-                                "No se encontró la playlist con ID: " + id + ". Verifica que el ID sea correcto."
-                        );
-                    });
+                    .orElseThrow(() -> new PlaylistNotFoundException(
+                            "No se encontró la playlist con ID: " + id + ". Verifica que el ID sea correcto."));
 
             // Actualización de los campos
             playlist.setNombre(playlistRequestDTO.getName());
@@ -225,26 +159,58 @@ public class PlaylistServiceImpl implements IPlaylistService {
             playlist.setIsPublic(playlistRequestDTO.getIsPublic());
             playlist.setImgPortada(playlistRequestDTO.getCoverImage());
 
-            playlist = playlistRepository.save(playlist);
-            log.info("Playlist actualizada exitosamente - ID: {}, Nombre: {}",
-                    playlist.getIdPlaylist(), playlist.getNombre());
+            playlistRepository.save(playlist);
+            log.info("Playlist actualizada exitosamente - ID: {}, Nombre: {}", playlist.getIdPlaylist(), playlist.getNombre());
 
         } catch (DataAccessException e) {
             log.error("Error de base de datos al actualizar la playlist {}: {}", id, e.getMessage());
-            throw new PlaylistUpdateException(
-                    "Error al acceder a la base de datos. Por favor, inténtalo más tarde.",
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+            throw new PlaylistUpdateException("Error al acceder a la base de datos. Por favor, inténtalo más tarde.",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (PlaylistNotFoundException | PlaylistUpdateException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error inesperado al actualizar la playlist {}: {}", id, e.getMessage());
-            throw new PlaylistUpdateException(
-                    "Ha ocurrido un error inesperado. Por favor, contacta al administrador.",
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+            throw new PlaylistUpdateException("Ha ocurrido un error inesperado. Por favor, contacta al administrador.",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    // Método auxiliar para validar campos de texto
+    private void validateField(String field, String nullMessage, String emptyMessage, int maxLength, String fieldName) {
+        if (field == null) {
+            throw new PlaylistUpdateException(nullMessage, HttpStatus.BAD_REQUEST);
+        }
+        if (field.trim().isEmpty()) {
+            throw new PlaylistUpdateException(emptyMessage, HttpStatus.BAD_REQUEST);
+        }
+        if (field.length() > maxLength) {
+            throw new PlaylistUpdateException(String.format("El %s no puede exceder los %d caracteres. Longitud actual: %d", fieldName, maxLength, field.length()),
+                    HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
+    private void validateUrl(String url, String nullMessage) {
+        if (url == null) {
+            throw new PlaylistUpdateException(nullMessage, HttpStatus.BAD_REQUEST);
+        }
+        if (url.trim().isEmpty()) {
+            throw new PlaylistUpdateException("La URL de la imagen de portada no puede estar vacía o contener solo espacios", HttpStatus.BAD_REQUEST);
+        }
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            throw new PlaylistUpdateException("La URL de la imagen de portada debe comenzar con 'http://' o 'https://'", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
+    private void validateId(Long id) {
+        if (id <= 0) {
+            throw new PlaylistUpdateException("El ID de la playlist no puede ser menor o igual a cero. ID proporcionado: " + id,
+                    HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
     @Override
     @Transactional
     public void deletePlaylist(Long id) {

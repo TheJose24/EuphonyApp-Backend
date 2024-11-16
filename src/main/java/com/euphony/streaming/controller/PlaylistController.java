@@ -31,7 +31,7 @@ public class PlaylistController {
             description = "Recupera una lista de todas las listas de reproducción disponibles")
     @ApiResponse(responseCode = "200", description = "Playlists recuperadas exitosamente",
             content = @Content(schema = @Schema(implementation = PlaylistResponseDTO.class)))
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<PlaylistResponseDTO>> getAllPlaylists() {
         log.info("Solicitando todas las playlists");
         List<PlaylistResponseDTO> playlists = playlistService.findAllPlaylists();
@@ -44,7 +44,7 @@ public class PlaylistController {
     @ApiResponse(responseCode = "200", description = "Playlist encontrada",
             content = @Content(schema = @Schema(implementation = PlaylistResponseDTO.class)))
     @ApiResponse(responseCode = "404", description = "Playlist no encontrada")
-    @GetMapping("/{id}")
+    @GetMapping("/search{id}")
     public ResponseEntity<PlaylistResponseDTO> getPlaylistById(
             @Parameter(description = "ID de la playlist", required = true)
             @PathVariable Long id) {
@@ -59,7 +59,7 @@ public class PlaylistController {
     @ApiResponse(responseCode = "201", description = "Playlist creada exitosamente")
     @ApiResponse(responseCode = "400", description = "Datos inválidos")
     @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<Void> createPlaylist(
             @Parameter(description = "Datos de la playlist a crear", required = true)
             @Valid @RequestBody PlaylistRequestDTO playlistRequestDTO) {
@@ -72,7 +72,7 @@ public class PlaylistController {
             description = "Actualiza los datos de una lista de reproducción existente")
     @ApiResponse(responseCode = "204", description = "Playlist actualizada exitosamente")
     @ApiResponse(responseCode = "404", description = "Playlist no encontrada")
-    @PutMapping("/{id}")
+    @PutMapping("update/{id}")
     public ResponseEntity<Void> updatePlaylist(
             @Parameter(description = "ID de la playlist a actualizar", required = true)
             @PathVariable Long id,
@@ -87,7 +87,7 @@ public class PlaylistController {
             description = "Elimina una lista de reproducción existente del sistema")
     @ApiResponse(responseCode = "204", description = "Playlist eliminada exitosamente")
     @ApiResponse(responseCode = "404", description = "Playlist no encontrada")
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public ResponseEntity<Void> deletePlaylist(
             @Parameter(description = "ID de la playlist a eliminar", required = true)
             @PathVariable Long id) {
