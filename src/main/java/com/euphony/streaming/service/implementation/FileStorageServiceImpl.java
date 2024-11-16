@@ -21,11 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -134,7 +130,8 @@ public class FileStorageServiceImpl implements IFileStorageService {
         try {
             return ContentType.valueOf(contentType.toUpperCase());
         } catch (IllegalArgumentException e) {
-            String errorMessage = String.format("Tipo de contenido no válido: %s", contentType);
+            String errorMessage = String.format("El tipo de contenido '%s' no es válido. Los valores permitidos son: %s",
+                    contentType, Arrays.toString(ContentType.values()));
             log.warn(errorMessage);
             throw new FileStorageException(errorMessage, HttpStatus.BAD_REQUEST);
         }
@@ -191,15 +188,13 @@ public class FileStorageServiceImpl implements IFileStorageService {
     private String generateUniqueFileName(MultipartFile file) {
         String originalName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
         String extension = getFileExtension(originalName);
-        return UUID.randomUUID() + Constants.DOT + extension;
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        // Fragmento del nombre original y un timestamp para mayor claridad
+        return originalName.substring(0, Math.min(originalName.length(), 15)) + "_" + timestamp + Constants.DOT + extension;
     }
 
     private String getFileExtension(String fileName) {
         return fileName.substring(fileName.lastIndexOf(Constants.DOT) + 1);
     }
 
-    // Metodo auxiliar para pruebas y diagnóstico
-    public Map<ContentType, Path> getUploadPaths() {
-        return Collections.unmodifiableMap(uploadPaths);
-    }
 }
