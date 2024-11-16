@@ -1,6 +1,10 @@
 package com.euphony.streaming.exception.advice;
 
 import com.euphony.streaming.exception.HttpStatusProvider;
+import com.euphony.streaming.exception.custom.album.AlbumCreationException;
+import com.euphony.streaming.exception.custom.album.AlbumDeletionException;
+import com.euphony.streaming.exception.custom.album.AlbumNotFoundException;
+import com.euphony.streaming.exception.custom.album.AlbumUpdateException;
 import com.euphony.streaming.exception.custom.artist.ArtistCreationException;
 import com.euphony.streaming.exception.custom.artist.ArtistDeletionException;
 import com.euphony.streaming.exception.custom.artist.ArtistNotFoundException;
@@ -16,6 +20,7 @@ import com.euphony.streaming.exception.custom.playlist.PlaylistCreationException
 import com.euphony.streaming.exception.custom.playlist.PlaylistDeletionException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistNotFoundException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistUpdateException;
+import com.euphony.streaming.exception.custom.storage.FileStorageException;
 import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansCreationException;
 import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansDeletionException;
 import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansNotFoundException;
@@ -96,6 +101,14 @@ public class GlobalExceptionHandler {
             FollowNotFoundException.class
     })
     public ResponseEntity<String> handleFollowExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
+
+    // Manejo de excepciones para Archivos
+    @ExceptionHandler({
+            FileStorageException.class
+    })
+    public ResponseEntity<String> handleAlbumExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 
