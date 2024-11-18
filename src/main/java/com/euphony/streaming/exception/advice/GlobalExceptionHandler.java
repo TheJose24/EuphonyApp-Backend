@@ -112,6 +112,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 
+    // Manejo de excepciones para Álbumes
+    @ExceptionHandler({
+            AlbumCreationException.class,
+            AlbumNotFoundException.class,
+            AlbumUpdateException.class,
+            AlbumDeletionException.class,
+    })
+    public ResponseEntity<String> handleAlbumExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGlobalException(Exception ex) {
         return new ResponseEntity<>("Error interno del servidor. Por favor, intente más tarde.", HttpStatus.INTERNAL_SERVER_ERROR);
