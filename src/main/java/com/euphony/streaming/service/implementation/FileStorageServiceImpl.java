@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -109,12 +110,8 @@ public class FileStorageServiceImpl implements IFileStorageService {
             log.info("Archivo guardado exitosamente: {}", fileName);
 
             return buildPublicUrl(type, fileName);
-        } catch (FileStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            String errorMessage = "Error inesperado al almacenar el archivo";
-            log.error(errorMessage, e);
-            throw new FileStorageException(errorMessage, e, HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (FileStorageException | IOException e) {
+            throw new FileStorageException("Error inesperado al almacenar el archivo", e, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -141,10 +138,39 @@ public class FileStorageServiceImpl implements IFileStorageService {
             }
 
             log.info("Archivo eliminado exitosamente: {}", filePath);
-        } catch (FileStorageException e) {
-            throw e;
-        } catch (Exception e) {
+        } catch (FileStorageException | IOException e) {
             String errorMessage = String.format("Error al eliminar el archivo: %s", filePath);
+            throw new FileStorageException(errorMessage , e, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    public String updateExistingFile(@NotNull String filePath, @NotNull InputStream inputStream, @NotBlank String contentType) {
+        try {
+            ContentType type = validateAndGetContentType(contentType);
+
+            String fileName = Path.of(filePath).getFileName().toString();
+            Path targetLocation = uploadPaths.get(type).resolve(fileName).normalize();
+
+            log.debug("Intentando actualizar archivo en la ruta: {}", targetLocation);
+
+            // Validar que el archivo existe
+            if (!Files.exists(targetLocation)) {
+                log.warn("El archivo no existe en la ruta: {}", targetLocation);
+                throw new FileStorageException("El archivo a actualizar no existe: " + targetLocation, HttpStatus.NOT_FOUND);
+            }
+
+            // Validar seguridad de la ubicación
+            validateTargetLocation(targetLocation);
+
+            // Sobrescribir el archivo
+            Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            log.info("Archivo actualizado exitosamente: {}", fileName);
+
+            // Construir y devolver URL pública
+            return buildPublicUrl(type, fileName);
+        } catch (IOException | FileStorageException e) {
+            String errorMessage = "Error de entrada/salida al actualizar el archivo";
             log.error(errorMessage, e);
             throw new FileStorageException(errorMessage, e, HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -238,8 +264,6 @@ public class FileStorageServiceImpl implements IFileStorageService {
                         HttpStatus.NOT_FOUND);
             }
         } catch (FileStorageException e) {
-            throw e;
-        } catch (Exception e) {
             throw new FileStorageException("Error al validar la ruta del archivo", e,
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }

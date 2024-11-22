@@ -16,10 +16,16 @@ import com.euphony.streaming.exception.custom.genre.GenreCreationException;
 import com.euphony.streaming.exception.custom.genre.GenreDeletionException;
 import com.euphony.streaming.exception.custom.genre.GenreNotFoundException;
 import com.euphony.streaming.exception.custom.genre.GenreUpdateException;
+import com.euphony.streaming.exception.custom.metadata.InvalidMetadataException;
+import com.euphony.streaming.exception.custom.metadata.MetadataProcessingException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistCreationException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistDeletionException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistNotFoundException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistUpdateException;
+import com.euphony.streaming.exception.custom.song.SongCreationException;
+import com.euphony.streaming.exception.custom.song.SongDeletionException;
+import com.euphony.streaming.exception.custom.song.SongNotFoundException;
+import com.euphony.streaming.exception.custom.song.SongUpdateException;
 import com.euphony.streaming.exception.custom.storage.FileStorageException;
 import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansCreationException;
 import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansDeletionException;
@@ -120,6 +126,26 @@ public class GlobalExceptionHandler {
             AlbumDeletionException.class,
     })
     public ResponseEntity<String> handleAlbumExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
+
+    // Manejo de excepciones para Metadatos de canciones
+    @ExceptionHandler({
+            InvalidMetadataException.class,
+            MetadataProcessingException.class,
+    })
+    public ResponseEntity<String> handleMetadataExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
+
+    // Manejo de excepciones para Canciones
+    @ExceptionHandler({
+            SongCreationException.class,
+            SongNotFoundException.class,
+            SongUpdateException.class,
+            SongDeletionException.class,
+    })
+    public ResponseEntity<String> handleSongExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 

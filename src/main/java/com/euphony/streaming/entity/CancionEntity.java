@@ -36,7 +36,7 @@ public class CancionEntity {
     private String portada;
 
     @Column(name = "duracion", nullable = false)
-    private Duration duracion;
+    private String duracion;
 
     @Column(name = "idioma", nullable = false, length = 50)
     private String idioma;
@@ -45,7 +45,7 @@ public class CancionEntity {
     private String letra;
 
     @Column(name = "fecha_lanzamiento", nullable = false)
-    private LocalDate fechaLanzamiento;
+    private String anioLanzamiento;
 
     @Column(name = "ruta_archivo", unique = true, nullable = false, length = 255)
     private String rutaArchivo;
