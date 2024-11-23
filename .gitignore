@@ -47,3 +47,8 @@ build/
 
 ### Docker ###
 compose.yaml
+Dockerfile
+
+### Prometheus ###
+prometheus.yml
+alertmanager.yml
