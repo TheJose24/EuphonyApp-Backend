@@ -22,6 +22,8 @@ import com.euphony.streaming.exception.custom.playlist.PlaylistCreationException
 import com.euphony.streaming.exception.custom.playlist.PlaylistDeletionException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistNotFoundException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistUpdateException;
+import com.euphony.streaming.exception.custom.report.ReportGenerationException;
+import com.euphony.streaming.exception.custom.report.ReportGenerationSaveException;
 import com.euphony.streaming.exception.custom.song.SongCreationException;
 import com.euphony.streaming.exception.custom.song.SongDeletionException;
 import com.euphony.streaming.exception.custom.song.SongNotFoundException;
@@ -163,7 +165,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleSubscriptionExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
-
+    @ExceptionHandler({
+            ReportGenerationSaveException.class,
+            ReportGenerationException.class
+    })
+    public ResponseEntity<String> handleReportExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
     private HttpStatus getStatusFromException(RuntimeException ex) {
         if (ex instanceof HttpStatusProvider) {
             return ((HttpStatusProvider) ex).getHttpStatus();
