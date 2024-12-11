@@ -43,4 +43,12 @@ public interface IProfileUserService {
      */
     void updateProfile(UUID userId, UserProfileRequestDTO profileUsuarioRequestDTO);
 
+
+    /**
+     * Obtiene la imagen de perfil de un usuario a partir de su ID de usuario.
+     *
+     * @param usuarioId El identificador único del usuario.
+     * @return La URL de la imagen de perfil del usuario.
+     */
+    String SearchImageProfileByUsuarioId(UUID usuarioId);
 }

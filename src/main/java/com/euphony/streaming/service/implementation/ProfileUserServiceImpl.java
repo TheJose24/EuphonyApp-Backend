@@ -34,6 +34,12 @@ public class ProfileUserServiceImpl implements IProfileUserService {
                 .toList();
     }
 
+    @Override
+    public String SearchImageProfileByUsuarioId(UUID usuarioId) {
+        return perfilUsuarioRepository.findByUsuarioIdUsuario(usuarioId)
+                .map(PerfilUsuarioEntity::getImgPerfil)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con id: " + usuarioId, HttpStatus.NOT_FOUND));
+    }
 
     @Override
     public UserProfileResponseDTO searchProfileByUsuarioId(UUID usuarioId) {
