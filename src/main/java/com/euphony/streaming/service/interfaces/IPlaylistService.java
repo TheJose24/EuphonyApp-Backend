@@ -2,6 +2,8 @@ package com.euphony.streaming.service.interfaces;
 
 import com.euphony.streaming.dto.request.PlaylistRequestDTO;
 import com.euphony.streaming.dto.response.PlaylistResponseDTO;
+import com.euphony.streaming.dto.response.SongInPlaylistResponseDTO;
+
 import java.util.List;
 
 /**
@@ -45,4 +47,29 @@ public interface IPlaylistService {
      * @param id El identificador único de la lista de reproducción a eliminar.
      */
     void deletePlaylist(Long id);
+
+
+    /**
+     * Agrega una canción a una lista de reproducción.
+     *
+     * @param playlistId El identificador único de la lista de reproducción.
+     * @param songId El identificador único de la canción a agregar.
+     */
+    void addSongToPlaylist(Long playlistId, Long songId);
+
+    /**
+     * Obtiene las canciones de una lista de reproducción.
+     *
+     * @param playlistId El identificador único de la lista de reproducción.
+     * @return Lista de {@link SongInPlaylistResponseDTO} con la información de las canciones de la lista de reproducción.
+     */
+    List<SongInPlaylistResponseDTO> getPlaylistSongs(Long playlistId);
+
+    /**
+     * Elimina una canción de una lista de reproducción.
+     *
+     * @param playlistId El identificador único de la lista de reproducción.
+     * @param songId El identificador único de la canción a eliminar.
+     */
+    void removeSongFromPlaylist(Long playlistId, Long songId);
 }

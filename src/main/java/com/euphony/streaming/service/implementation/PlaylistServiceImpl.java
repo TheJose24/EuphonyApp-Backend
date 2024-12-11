@@ -2,13 +2,16 @@ package com.euphony.streaming.service.implementation;
 
 import com.euphony.streaming.dto.request.PlaylistRequestDTO;
 import com.euphony.streaming.dto.response.PlaylistResponseDTO;
-import com.euphony.streaming.entity.PlaylistEntity;
-import com.euphony.streaming.entity.UsuarioEntity;
+import com.euphony.streaming.dto.response.SongInPlaylistResponseDTO;
+import com.euphony.streaming.entity.*;
 import com.euphony.streaming.exception.custom.playlist.PlaylistCreationException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistDeletionException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistNotFoundException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistUpdateException;
+import com.euphony.streaming.exception.custom.song.SongNotFoundException;
 import com.euphony.streaming.exception.custom.user.UserNotFoundException;
+import com.euphony.streaming.repository.CancionRepository;
+import com.euphony.streaming.repository.PlaylistCancionRepository;
 import com.euphony.streaming.repository.PlaylistRepository;
 import com.euphony.streaming.repository.UsuarioRepository;
 import com.euphony.streaming.service.interfaces.IPlaylistService;
@@ -30,7 +33,9 @@ import java.util.stream.Collectors;
 public class PlaylistServiceImpl implements IPlaylistService {
 
     private final PlaylistRepository playlistRepository;
+    private final PlaylistCancionRepository playlistCancionRepository;
     private final UsuarioRepository usuarioRepository;
+    private final CancionRepository songRepository;
 
     @Override
     public List<PlaylistResponseDTO> findAllPlaylists() {
@@ -290,6 +295,146 @@ public class PlaylistServiceImpl implements IPlaylistService {
             throw new PlaylistDeletionException("Se produjo un error inesperado. Intente nuevamente más tarde.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SongInPlaylistResponseDTO> getPlaylistSongs(Long playlistId) {
+        try {
+            log.info("Buscando canciones de la playlist ID: {}", playlistId);
+
+            // Validar existencia de la playlist
+            PlaylistEntity playlist = playlistRepository.findById(playlistId)
+                    .orElseThrow(() -> {
+                        log.error("No se encontró la playlist con ID: {}", playlistId);
+                        return new PlaylistNotFoundException("No se encontró la playlist especificada");
+                    });
+
+            // Obtener las relaciones playlist-canción
+            List<PlaylistCancionEntity> playlistCanciones = playlistCancionRepository
+                    .findByPlaylistIdPlaylist(playlistId);
+
+            // Convertir a DTOs
+            List<SongInPlaylistResponseDTO> songs = playlistCanciones.stream()
+                    .map(pc -> SongInPlaylistResponseDTO.builder()
+                            .songId(pc.getCancion().getIdCancion())
+                            .title(pc.getCancion().getTitulo())
+                            .artist(pc.getCancion().getArtista().getNombre())
+                            .album(pc.getCancion().getAlbum().getTitulo())
+                            .duration(pc.getCancion().getDuracion())
+                            .coverArt(pc.getCancion().getPortada())
+                            .build())
+                    .collect(Collectors.toList());
+
+            log.info("Se encontraron {} canciones en la playlist {}", songs.size(), playlistId);
+            return songs;
+
+        } catch (PlaylistNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error al obtener canciones de la playlist {}: {}", playlistId, e.getMessage());
+            throw new PlaylistNotFoundException(
+                    "Error al obtener las canciones de la playlist",
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+
+    @Override
+    @Transactional
+    public void addSongToPlaylist(Long playlistId, Long songId) {
+        try {
+            log.info("Iniciando proceso de agregar canción {} a playlist {}", songId, playlistId);
+
+            // Validar playlist
+            PlaylistEntity playlist = playlistRepository.findById(playlistId)
+                    .orElseThrow(() -> {
+                        log.error("No se encontró la playlist con ID: {}", playlistId);
+                        return new PlaylistNotFoundException("No se encontró la playlist especificada");
+                    });
+
+            // Validar canción
+            CancionEntity song = songRepository.findById(songId)
+                    .orElseThrow(() -> {
+                        log.error("No se encontró la canción con ID: {}", songId);
+                        return new SongNotFoundException("No se encontró la canción especificada", HttpStatus.NOT_FOUND);
+                    });
+
+            // Verificar si la relación ya existe
+            if (playlistCancionRepository.existsByPlaylistIdPlaylistAndCancionIdCancion(playlistId, songId)) {
+                log.warn("La canción ya existe en la playlist");
+                throw new PlaylistUpdateException(
+                        "La canción ya existe en la playlist",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            // Crear nueva relación
+            PlaylistCancionEntity playlistCancion = new PlaylistCancionEntity();
+            playlistCancion.setPlaylist(playlist);
+            playlistCancion.setCancion(song);
+
+            // Guardar la relación
+            playlistCancionRepository.save(playlistCancion);
+
+            log.info("Canción {} agregada exitosamente a playlist {}", songId, playlistId);
+
+        } catch (PlaylistNotFoundException | SongNotFoundException e) {
+            throw e;
+        } catch (DataIntegrityViolationException e) {
+            log.error("Error de integridad de datos al agregar canción a playlist: {}", e.getMessage());
+            throw new PlaylistUpdateException(
+                    "Error al agregar la canción a la playlist - violación de integridad",
+                    HttpStatus.CONFLICT
+            );
+        }
+    }
+
+    @Override
+    @Transactional
+    public void removeSongFromPlaylist(Long playlistId, Long songId) {
+        try {
+            log.info("Iniciando proceso de eliminar canción {} de playlist {}", songId, playlistId);
+
+            // Validar que exista la playlist
+            PlaylistEntity playlist = playlistRepository.findById(playlistId)
+                    .orElseThrow(() -> {
+                        log.error("No se encontró la playlist con ID: {}", playlistId);
+                        return new PlaylistNotFoundException("No se encontró la playlist especificada");
+                    });
+
+            // Validar que exista la relación
+            if (!playlistCancionRepository.existsByPlaylistIdPlaylistAndCancionIdCancion(playlistId, songId)) {
+                log.warn("La canción no existe en la playlist");
+                throw new PlaylistUpdateException(
+                        "La canción no existe en la playlist",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            // Eliminar la relación usando el metodo específico
+            playlistCancionRepository.deleteByPlaylistIdPlaylistAndCancionIdCancion(playlistId, songId);
+            log.info("Canción {} eliminada exitosamente de playlist {}", songId, playlistId);
+
+        } catch (PlaylistNotFoundException e) {
+            throw e;
+        } catch (DataIntegrityViolationException e) {
+            log.error("Error de integridad de datos al eliminar canción de playlist: {}", e.getMessage());
+            throw new PlaylistUpdateException(
+                    "Error al eliminar la canción de la playlist - violación de integridad",
+                    HttpStatus.CONFLICT
+            );
+        } catch (DataAccessException e) {
+            log.error("Error de base de datos al eliminar canción de playlist: {}", e.getMessage());
+            throw new PlaylistUpdateException(
+                    "Error al eliminar la canción de la playlist",
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+
     private PlaylistResponseDTO convertToDTO(PlaylistEntity playlist) {
         PlaylistResponseDTO dto = new PlaylistResponseDTO();
         dto.setPlaylistId(playlist.getIdPlaylist());

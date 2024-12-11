@@ -27,6 +27,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -69,6 +71,22 @@ public class SongServiceImpl implements ISongService {
                         String.format(ERROR_SONG_NOT_FOUND, songId),
                         HttpStatus.NOT_FOUND
                 ));
+    }
+
+    @Override
+    public Path getSongFilePath(Long id) {
+        CancionEntity song = cancionRepository.findById(id)
+                .orElseThrow(() -> new SongNotFoundException("Canción no encontrada", HttpStatus.NOT_FOUND));
+        log.info("Obteniendo la ruta del archivo de la canción: {}", song.getTitulo());
+        String baseUploadDir = "uploads";
+        // Normalizar la ruta eliminando "/uploads/" si existe
+        String normalizedPath = song.getRutaArchivo().replace('\\', '/');
+        if (normalizedPath.startsWith("/uploads/")) {
+            normalizedPath = normalizedPath.substring("/uploads/".length());
+        }
+        Path path = Paths.get(baseUploadDir, normalizedPath).normalize();
+        log.info("Ruta del archivo de la canción: {}", path);
+        return path;
     }
 
     @Override
