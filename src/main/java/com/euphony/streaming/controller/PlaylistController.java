@@ -21,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/playlists")
@@ -57,6 +58,44 @@ public class PlaylistController {
         log.info("Playlist encontrada con ID: {}", id);
         return ResponseEntity.ok(playlist);
     }
+
+    @GetMapping("/user/{userId}")
+    @Operation(
+            summary = "Obtener playlists de un usuario",
+            description = "Recupera todas las listas de reproducción pertenecientes a un usuario específico"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Playlists recuperadas exitosamente",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = PlaylistResponseDTO.class))
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario no encontrado"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Error interno del servidor"
+            )
+    })
+    public ResponseEntity<List<PlaylistResponseDTO>> getPlaylistsByUserId(
+            @Parameter(
+                    description = "ID del usuario",
+                    required = true,
+                    schema = @Schema(type = "string", format = "uuid")
+            )
+            @PathVariable UUID userId) {
+
+        log.info("Buscando playlists del usuario ID: {}", userId);
+        List<PlaylistResponseDTO> playlists = playlistService.findPlaylistsByUserId(userId);
+        log.info("Se encontraron {} playlists para el usuario {}", playlists.size(), userId);
+        return ResponseEntity.ok(playlists);
+    }
+
 
     @Operation(summary = "Crear nueva playlist",
             description = "Crea una nueva lista de reproducción en el sistema")

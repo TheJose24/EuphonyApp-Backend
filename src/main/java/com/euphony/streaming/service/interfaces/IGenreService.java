@@ -1,6 +1,7 @@
 package com.euphony.streaming.service.interfaces;
 
 import com.euphony.streaming.dto.request.GenreRequestDTO;
+import com.euphony.streaming.dto.response.GenreMostPlayedDTO;
 import com.euphony.streaming.dto.response.GenreResponseDTO;
 
 import java.util.List;
@@ -24,6 +25,14 @@ public interface IGenreService {
      * @return Un {@link GenreResponseDTO} con los datos del género musical.
      */
     GenreResponseDTO findGenreByName(String name);
+
+    /**
+     * Obtiene los géneros musicales más escuchados en el sistema.
+     *
+     * @param limit El número máximo de géneros a recuperar.
+     * @return Lista de {@link GenreMostPlayedDTO} con los géneros más escuchados.
+     */
+    List<GenreMostPlayedDTO> findMostPlayedGenres(int limit);
 
     /**
      * Crea un nuevo género musical en el sistema.

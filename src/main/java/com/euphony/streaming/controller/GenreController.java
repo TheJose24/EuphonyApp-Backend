@@ -1,10 +1,12 @@
 package com.euphony.streaming.controller;
 
 import com.euphony.streaming.dto.request.GenreRequestDTO;
+import com.euphony.streaming.dto.response.GenreMostPlayedDTO;
 import com.euphony.streaming.dto.response.GenreResponseDTO;
 import com.euphony.streaming.service.implementation.GenreServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -38,6 +40,29 @@ public class GenreController {
     public ResponseEntity<List<GenreResponseDTO>> getAllGenres() {
         List<GenreResponseDTO> genres = genreService.findAllGenres();
         return ResponseEntity.ok(genres);
+    }
+
+    @GetMapping("/most-played")
+    @Operation(
+            summary = "Obtener géneros más escuchados",
+            description = "Retorna la lista de géneros musicales ordenados por número de reproducciones"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Operación exitosa",
+                    content = @Content(
+                            mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = GenreMostPlayedDTO.class))
+                    )
+            )
+    })
+    public ResponseEntity<List<GenreMostPlayedDTO>> getMostPlayedGenres(
+            @Parameter(description = "Límite de resultados (opcional)")
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+
+        log.info("Obteniendo los {} géneros más escuchados", limit);
+        return ResponseEntity.ok(genreService.findMostPlayedGenres(limit));
     }
 
 
