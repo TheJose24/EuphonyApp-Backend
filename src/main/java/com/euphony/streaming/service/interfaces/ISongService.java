@@ -6,6 +6,7 @@ import com.euphony.streaming.dto.response.SongResponseDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -58,4 +59,12 @@ public interface ISongService {
      * @return Un {@link SongMetadataResponseDTO} con los metadatos de la canción.
      */
     SongMetadataResponseDTO analyzeSong(MultipartFile songFile) throws IOException;
+
+    /**
+     * Obtiene la ruta del archivo de una canción.
+     * @param id Identificador de la canción.
+     * @return Ruta del archivo de la canción.
+     */
+    Path getSongFilePath(Long id);
+
 }
