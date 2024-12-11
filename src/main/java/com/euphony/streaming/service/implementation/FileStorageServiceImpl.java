@@ -22,8 +22,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 @Service
@@ -34,9 +32,6 @@ public class FileStorageServiceImpl implements IFileStorageService {
         private static final DataSize DEFAULT_MAX_FILE_SIZE = DataSize.ofMegabytes(10);
         private static final String INVALID_PATH_SEQUENCE = "..";
         private static final String DOT = ".";
-        private static final String FILE_SEPARATOR = "_";
-        private static final int MAX_FILENAME_LENGTH = 15;
-        private static final String HASH_ALGORITHM = "SHA-256";
     }
 
     @Getter
@@ -272,20 +267,20 @@ public class FileStorageServiceImpl implements IFileStorageService {
     private String generateUniqueFileName(MultipartFile file) {
         try {
             String originalName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
-            String extension = getFileExtension(originalName);
+            String extension = getFileExtension(originalName).toLowerCase();
+
+
+            String sanitizedName = originalName
+                    .substring(0, Math.min(originalName.length(), 30))
+                    .replaceAll("[^a-zA-Z0-9._-]", "_");
+
             String timestamp = String.valueOf(System.currentTimeMillis());
-            String fileHash = generateFileHash(file);
+            String randomString = UUID.randomUUID().toString().substring(0, 8);
 
-            String truncatedName = originalName.substring(0,
-                    Math.min(originalName.length(), Constants.MAX_FILENAME_LENGTH));
-
-            return String.format("%s%s%s%s%s%s%s",
-                    truncatedName,
-                    Constants.FILE_SEPARATOR,
+            return String.format("%s_%s_%s.%s",
+                    sanitizedName,
                     timestamp,
-                    Constants.FILE_SEPARATOR,
-                    fileHash,
-                    Constants.DOT,
+                    randomString,
                     extension);
 
         } catch (Exception e) {
@@ -293,11 +288,6 @@ public class FileStorageServiceImpl implements IFileStorageService {
         }
     }
 
-    private String generateFileHash(MultipartFile file) throws IOException, NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance(Constants.HASH_ALGORITHM);
-        byte[] hash = digest.digest(file.getBytes());
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(hash).substring(0, 8);
-    }
 
     private String getFileExtension(String fileName) {
         return Optional.ofNullable(fileName)
