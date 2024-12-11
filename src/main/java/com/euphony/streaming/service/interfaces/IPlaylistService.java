@@ -5,6 +5,7 @@ import com.euphony.streaming.dto.response.PlaylistResponseDTO;
 import com.euphony.streaming.dto.response.SongInPlaylistResponseDTO;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Interfaz que define las operaciones de gestión de listas de reproducción.
@@ -72,4 +73,12 @@ public interface IPlaylistService {
      * @param songId El identificador único de la canción a eliminar.
      */
     void removeSongFromPlaylist(Long playlistId, Long songId);
+
+    /**
+     * Obtiene las listas de reproducción de un usuario.
+     *
+     * @param userId El identificador único del usuario.
+     * @return Lista de {@link PlaylistResponseDTO} con la información de las listas de reproducción del usuario.
+     */
+    List<PlaylistResponseDTO> findPlaylistsByUserId(UUID userId);
 }

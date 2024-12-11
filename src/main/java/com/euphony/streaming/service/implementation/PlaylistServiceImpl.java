@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,6 +76,45 @@ public class PlaylistServiceImpl implements IPlaylistService {
             throw new PlaylistCreationException("Error al buscar la lista de reproducción", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PlaylistResponseDTO> findPlaylistsByUserId(UUID userId) {
+        try {
+            log.info("Buscando playlists del usuario ID: {}", userId);
+
+            // Validar que el usuario exista
+            if (!usuarioRepository.existsById(userId)) {
+                log.error("No se encontró el usuario con ID: {}", userId);
+                throw new UserNotFoundException(
+                        "No se encontró el usuario especificado",
+                        HttpStatus.NOT_FOUND
+                );
+            }
+
+            // Obtener playlists del usuario
+            List<PlaylistEntity> playlists = playlistRepository.findByUsuarioIdUsuario(userId);
+
+            // Convertir a DTOs
+            List<PlaylistResponseDTO> playlistDTOs = playlists.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            log.info("Se encontraron {} playlists para el usuario {}", playlistDTOs.size(), userId);
+            return playlistDTOs;
+
+        } catch (UserNotFoundException e) {
+            throw e;
+        } catch (DataAccessException e) {
+            log.error("Error de base de datos al buscar playlists del usuario {}: {}", userId, e.getMessage());
+            throw new PlaylistNotFoundException(
+                    "Error al obtener las playlists del usuario",
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+
     @Override
     @Transactional
     public void createPlaylist(PlaylistRequestDTO playlistRequestDTO) {

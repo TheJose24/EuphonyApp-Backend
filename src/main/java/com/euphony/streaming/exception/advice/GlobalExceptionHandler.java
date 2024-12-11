@@ -18,6 +18,7 @@ import com.euphony.streaming.exception.custom.genre.GenreNotFoundException;
 import com.euphony.streaming.exception.custom.genre.GenreUpdateException;
 import com.euphony.streaming.exception.custom.metadata.InvalidMetadataException;
 import com.euphony.streaming.exception.custom.metadata.MetadataProcessingException;
+import com.euphony.streaming.exception.custom.playHistory.PlayHistoryException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistCreationException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistDeletionException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistNotFoundException;
@@ -172,6 +173,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleReportExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
+
+    @ExceptionHandler({
+            PlayHistoryException.class
+    })
+    public ResponseEntity<String> handlePlayHistoryExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
+
     private HttpStatus getStatusFromException(RuntimeException ex) {
         if (ex instanceof HttpStatusProvider) {
             return ((HttpStatusProvider) ex).getHttpStatus();
