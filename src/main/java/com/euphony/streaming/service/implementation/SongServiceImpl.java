@@ -11,6 +11,7 @@ import com.euphony.streaming.repository.*;
 import com.euphony.streaming.service.interfaces.IFileStorageService;
 import com.euphony.streaming.service.interfaces.ISongMetadataService;
 import com.euphony.streaming.service.interfaces.ISongService;
+import com.euphony.streaming.util.SongGenreProjection;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,8 +56,15 @@ public class SongServiceImpl implements ISongService {
     @Cacheable(value = "songs", key = "'all'")
     public List<SongResponseDTO> findAllSongs() {
         log.info("Buscando todas las canciones");
-        return cancionRepository.findAll().stream()
-                .map(this::mapToSongResponseDTO)
+        List<CancionEntity> songs = cancionRepository.findAllWithArtistAndAlbum();
+
+        // Se resuelven los géneros de todas las canciones en una sola consulta (evita N+1).
+        Map<Long, Set<String>> genresBySong = fetchGenresBySongIds(
+                songs.stream().map(CancionEntity::getIdCancion).toList());
+
+        return songs.stream()
+                .map(song -> mapToSongResponseDTO(song,
+                        genresBySong.getOrDefault(song.getIdCancion(), Set.of())))
                 .toList();
     }
 
@@ -65,8 +73,8 @@ public class SongServiceImpl implements ISongService {
     @Cacheable(value = "songs", key = "#songId")
     public SongResponseDTO searchSongById(Long songId) {
         log.info("Buscando canción por id: {}", songId);
-        return cancionRepository.findById(songId)
-                .map(this::mapToSongResponseDTO)
+        return cancionRepository.findByIdWithArtistAndAlbum(songId)
+                .map(song -> mapToSongResponseDTO(song, fetchGenresForSong(song.getIdCancion())))
                 .orElseThrow(() -> new SongNotFoundException(
                         String.format(ERROR_SONG_NOT_FOUND, songId),
                         HttpStatus.NOT_FOUND
@@ -140,8 +148,12 @@ public class SongServiceImpl implements ISongService {
         songMetadata.setReleaseDate(songRequestDTO.getReleaseDate());
         songMetadata.setAlbumCoverPath(album.getPortada());
 
+        log.info("Metadatos de la canción: {}", songMetadata);
+
         // Actualizar los metadatos del archivo MP3
         songMetadataService.assignMetadata(songMetadata);
+
+        log.info("Metadatos de la canción actualizados: {}", songMetadata);
 
         // Mapear a la entidad CancionEntity
         CancionEntity songEntity = buildSongEntity(songMetadata, artist, album, songPath, songRequestDTO.getLanguage());
@@ -344,16 +356,28 @@ public class SongServiceImpl implements ISongService {
     }
 
     /**
-     * Mapea una entidad CancionEntity a un SongResponseDTO.
+     * Mapea una entidad CancionEntity a un SongResponseDTO usando los géneros ya resueltos.
      */
-    private SongResponseDTO mapToSongResponseDTO(CancionEntity cancionEntity) {
-        Set<String> genres = fetchGenresForSong(cancionEntity.getIdCancion());
+    private SongResponseDTO mapToSongResponseDTO(CancionEntity cancionEntity, Set<String> genres) {
+        ArtistaEntity artista = cancionEntity.getArtista();
+        AlbumEntity album = cancionEntity.getAlbum();
 
         return SongResponseDTO.builder()
                 .songId(cancionEntity.getIdCancion())
-                .artistId(cancionEntity.getArtista().getIdArtista())
-                .albumId(Optional.ofNullable(cancionEntity.getAlbum())
+                .artistId(Optional.ofNullable(artista)
+                        .map(ArtistaEntity::getIdArtista)
+                        .orElse(null))
+                .artistName(Optional.ofNullable(artista)
+                        .map(ArtistaEntity::getNombre)
+                        .orElse(null))
+                .albumId(Optional.ofNullable(album)
                         .map(AlbumEntity::getIdAlbum)
+                        .orElse(null))
+                .albumTitle(Optional.ofNullable(album)
+                        .map(AlbumEntity::getTitulo)
+                        .orElse(null))
+                .albumCover(Optional.ofNullable(album)
+                        .map(AlbumEntity::getPortada)
                         .orElse(null))
                 .title(cancionEntity.getTitulo())
                 .coverImg(cancionEntity.getPortada())
@@ -370,6 +394,7 @@ public class SongServiceImpl implements ISongService {
 
     /**
      * Recupera los géneros para una canción.
+     * Se usa un TreeSet para devolverlos en orden alfabético determinista.
      */
     private Set<String> fetchGenresForSong(Long songId) {
         return cancionGeneroRepository.findByCancion_IdCancion(songId).stream()
@@ -377,6 +402,24 @@ public class SongServiceImpl implements ISongService {
                 .filter(Objects::nonNull)
                 .map(GeneroEntity::getNombre)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    /**
+     * Recupera los géneros de varias canciones en una sola consulta y los agrupa por
+     * ID de canción. Evita el problema N+1 al listar canciones con sus géneros.
+     * Si no hay canciones, evita ejecutar la consulta (no genera un {@code IN ()}).
+     * Cada conjunto es un TreeSet para devolver los géneros en orden alfabético determinista.
+     */
+    private Map<Long, Set<String>> fetchGenresBySongIds(List<Long> songIds) {
+        if (songIds.isEmpty()) {
+            return Map.of();
+        }
+        return cancionGeneroRepository.findGenresByCancionIds(songIds).stream()
+                .filter(projection -> projection.getGenreName() != null)
+                .collect(Collectors.groupingBy(
+                        SongGenreProjection::getSongId,
+                        Collectors.mapping(SongGenreProjection::getGenreName,
+                                Collectors.toCollection(TreeSet::new))));
     }
 }

@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +40,7 @@ public class AlbumController {
         return new ResponseEntity<>(albums, HttpStatus.OK);
     }
 
-    @GetMapping("/search/{name}")
+    @GetMapping("/search/by-name/{name}")
     @Operation(summary = "Buscar álbum por nombre",
             description = "Recupera un álbum específico por su nombre")
     @ApiResponse(responseCode = "200", description = "Álbum encontrado exitosamente",
@@ -54,6 +53,38 @@ public class AlbumController {
             @Parameter(description = "Nombre del álbum a buscar", required = true)
             @PathVariable String name) {
         AlbumResponseDTO album = albumService.findAlbumByName(name);
+        return new ResponseEntity<>(album, HttpStatus.OK);
+    }
+
+    @GetMapping("/search/by-artist/{artist}")
+    @Operation(summary = "Buscar álbum por artista",
+            description = "Recupera una lista de álbumes de un artista específico")
+    @ApiResponse(responseCode = "200", description = "Álbumes encontrados exitosamente",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = AlbumResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Álbumes no encontrados", content = {
+            @Content(mediaType = "application/json")
+    })
+    public ResponseEntity<List<AlbumResponseDTO>> getAlbumsByArtist(
+            @Parameter(description = "Nombre del artista a buscar", required = true)
+            @PathVariable String artist) {
+        List<AlbumResponseDTO> albums = albumService.findAlbumsByArtist(artist);
+        return new ResponseEntity<>(albums, HttpStatus.OK);
+    }
+
+    @GetMapping("/search/by-id/{id}")
+    @Operation(summary = "Buscar álbum por id",
+            description = "Recupera una lista de álbumes de un artista específico")
+    @ApiResponse(responseCode = "200", description = "Álbumes encontrados exitosamente",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = AlbumResponseDTO.class)))
+    @ApiResponse(responseCode = "404", description = "Álbumes no encontrados", content = {
+            @Content(mediaType = "application/json")
+    })
+    public ResponseEntity<AlbumResponseDTO> getAlbumsById(
+            @Parameter(description = "Nombre del artista a buscar", required = true)
+            @PathVariable Long id) {
+        AlbumResponseDTO album = albumService.findAlbumById(id);
         return new ResponseEntity<>(album, HttpStatus.OK);
     }
 

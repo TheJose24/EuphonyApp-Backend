@@ -288,7 +288,6 @@ public class FileStorageServiceImpl implements IFileStorageService {
         }
     }
 
-
     private String getFileExtension(String fileName) {
         return Optional.ofNullable(fileName)
                 .filter(f -> f.contains(Constants.DOT))

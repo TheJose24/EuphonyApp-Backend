@@ -43,7 +43,6 @@ public interface IProfileUserService {
      */
     void updateProfile(UUID userId, UserProfileRequestDTO profileUsuarioRequestDTO);
 
-
     /**
      * Obtiene la imagen de perfil de un usuario a partir de su ID de usuario.
      *

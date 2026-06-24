@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface AlbumRepository extends JpaRepository<AlbumEntity, Long> {
     Optional<AlbumEntity> findByTitulo(String titulo);
     Boolean existsByTitulo(String titulo);
+    Optional<AlbumEntity> findByArtistaNombre(String nombre);
 }

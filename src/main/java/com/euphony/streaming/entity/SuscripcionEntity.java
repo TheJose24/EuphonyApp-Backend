@@ -1,12 +1,14 @@
 package com.euphony.streaming.entity;
 
 import com.euphony.streaming.audit.BaseAudit;
+import com.euphony.streaming.util.enums.SubscriptionState;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -33,15 +35,19 @@ public class SuscripcionEntity extends BaseAudit {
     private MetodoPagoEntity metodoPago;
 
     @Column(name = "fecha_inicio", nullable = false)
-    private LocalDate fechaInicio;
+    private LocalDateTime fechaInicio;
 
     @Column(name = "fecha_renovacion", nullable = false)
-    private LocalDate fechaRenovacion;
+    private LocalDateTime fechaRenovacion;
 
     @Column(name = "fecha_cancelacion")
-    private LocalDate fechaCancelacion;
+    private LocalDateTime fechaCancelacion;
+
+    @Column(name = "fecha_ultima_actualizacion")
+    private LocalDateTime fechaUltimaActualizacion;
 
     @Column(name = "estado", nullable = false)
-    private String estado = "activa";
+    @Enumerated(EnumType.STRING)
+    private SubscriptionState estado = SubscriptionState.ACTIVE;
 
 }

@@ -72,14 +72,13 @@ public class SongMetadataServiceImpl implements ISongMetadataService {
         validateSongMetadata(songMetadataResponseDTO);
 
         try {
+            log.debug("Creando archivo temporal...");
             Path inputFile = resolveRelativePath(songMetadataResponseDTO.getFilePath());
             Path tempOutputFile = createTempFile();
+            log.debug("Archivo temporal creado: {}", tempOutputFile);
 
             try {
                 return updateAndStoreMetadata(songMetadataResponseDTO, inputFile, tempOutputFile);
-            } catch (InvalidDataException | UnsupportedTagException | NotSupportedException e) {
-                log.error("Error al actualizar metadata en el archivo: {}", songMetadataResponseDTO.getFilePath(), e);
-                throw new MetadataProcessingException("Error al actualizar metadata en el archivo", e, HttpStatus.INTERNAL_SERVER_ERROR);
             } finally {
                 deleteTempFile(tempOutputFile);
             }
@@ -146,15 +145,27 @@ public class SongMetadataServiceImpl implements ISongMetadataService {
         return builder.build();
     }
 
-    private String updateAndStoreMetadata(SongMetadataResponseDTO songMetadataResponseDTO, Path inputFile, Path tempOutputFile) throws InvalidDataException, UnsupportedTagException, IOException, NotSupportedException {
-        Mp3File mp3File = new Mp3File(inputFile.toFile());
-        ID3v2 tag = mp3File.hasId3v2Tag() ? mp3File.getId3v2Tag() : new ID3v24Tag();
+    private String updateAndStoreMetadata(SongMetadataResponseDTO metadata, Path inputFile, Path tempOutputFile) {
+        log.debug("Iniciando proceso de metadata. Input: {}, Temp: {}", inputFile, tempOutputFile);
 
-        applyMetadataToTag(tag, songMetadataResponseDTO);
-        mp3File.setId3v2Tag(tag);
-        mp3File.save(tempOutputFile.toString());
+        try {
+            log.debug("Creando Mp3File...");
+            Mp3File mp3File = new Mp3File(inputFile.toFile());
+            log.debug("Mp3File creado exitosamente");
 
-        return storeFileWithUpdatedMetadata(songMetadataResponseDTO.getFilePath(), tempOutputFile);
+            ID3v2 tag = mp3File.hasId3v2Tag() ? mp3File.getId3v2Tag() : new ID3v24Tag();
+            log.debug("Tag ID3v2 obtenido");
+
+            applyMetadataToTag(tag, metadata);
+            mp3File.setId3v2Tag(tag);
+            log.debug("Guardando archivo con metadata actualizada...");
+            mp3File.save(tempOutputFile.toString());
+
+            return storeFileWithUpdatedMetadata(metadata.getFilePath(), tempOutputFile);
+        } catch (Exception e) {
+            log.error("Error en updateAndStoreMetadata", e);
+            throw new MetadataProcessingException("Error procesando metadata", e, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     private void applyMetadataToTag(ID3v2 tag, SongMetadataResponseDTO metadata) {

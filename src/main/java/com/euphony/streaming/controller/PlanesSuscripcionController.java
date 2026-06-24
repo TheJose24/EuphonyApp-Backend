@@ -1,7 +1,8 @@
 package com.euphony.streaming.controller;
 
-import com.euphony.streaming.dto.request.PlanesSuscripcionRequestDTO;
-import com.euphony.streaming.dto.response.PlanesSuscripcionResponseDTO;
+import com.euphony.streaming.dto.request.PlansSubscriptionRequestDTO;
+import com.euphony.streaming.dto.request.PlansUpdateRequestDTO;
+import com.euphony.streaming.dto.response.PlansSubscriptionResponseDTO;
 import com.euphony.streaming.service.interfaces.IPlanesSuscripcionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,9 +30,9 @@ public class PlanesSuscripcionController {
     @Operation(summary = "Obtener todos los planes de suscripción")
     @ApiResponse(responseCode = "200", description = "Lista de planes recuperada exitosamente")
     @GetMapping("/all")
-    public ResponseEntity<List<PlanesSuscripcionResponseDTO>> getAllPlans() {
+    public ResponseEntity<List<PlansSubscriptionResponseDTO>> getAllPlans() {
         log.info("Iniciando operación: Obtener todos los planes de suscripción");
-        List<PlanesSuscripcionResponseDTO> plans = service.getAllPlans();
+        List<PlansSubscriptionResponseDTO> plans = service.getAllPlans();
         log.info("Operación completada: Se recuperaron {} planes de suscripción", plans.size());
         return ResponseEntity.ok(plans);
     }
@@ -42,11 +43,11 @@ public class PlanesSuscripcionController {
             @ApiResponse(responseCode = "404", description = "Plan no encontrado")
     })
     @GetMapping("/search/{id}")
-    public ResponseEntity<PlanesSuscripcionResponseDTO> getPlanById(
+    public ResponseEntity<PlansSubscriptionResponseDTO> getPlanById(
             @Parameter(description = "ID del plan a buscar")
             @PathVariable Long id) {
         log.info("Iniciando operación: Buscar plan de suscripción con ID {}", id);
-        PlanesSuscripcionResponseDTO plan = service.getPlanById(id);
+        PlansSubscriptionResponseDTO plan = service.getPlanById(id);
         log.info("Operación completada: Plan de suscripción encontrado con ID {}", id);
         return ResponseEntity.ok(plan);
     }
@@ -60,7 +61,7 @@ public class PlanesSuscripcionController {
     @PostMapping("/create")
     public ResponseEntity<Void> createPlan(
             @Parameter(description = "Datos del plan a crear")
-            @RequestBody PlanesSuscripcionRequestDTO requestDTO) {
+            @RequestBody PlansSubscriptionRequestDTO requestDTO) {
         log.info("Iniciando operación: Crear un nuevo plan de suscripción");
         service.createPlan(requestDTO);
         log.info("Operación completada: Plan de suscripción creado exitosamente");
@@ -78,7 +79,7 @@ public class PlanesSuscripcionController {
             @Parameter(description = "ID del plan a actualizar")
             @PathVariable Long id,
             @Parameter(description = "Nuevos datos del plan")
-            @RequestBody PlanesSuscripcionRequestDTO requestDTO) {
+            @RequestBody PlansUpdateRequestDTO requestDTO) {
         log.info("Iniciando operación: Actualizar plan de suscripción con ID {}", id);
         service.updatePlan(id, requestDTO);
         log.info("Operación completada: Plan de suscripción con ID {} actualizado exitosamente", id);

@@ -64,7 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/management/**").hasRole("METRICS_ADMIN")
                         .requestMatchers("/management/prometheus/**").hasRole("METRICS_ADMIN")
                         //.anyRequest().permitAll() cambiar para desactivar seguridad
-                        .anyRequest().authenticated())
+                        .anyRequest().permitAll())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .httpBasic(basic -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

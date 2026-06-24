@@ -22,8 +22,17 @@ public class SongResponseDTO {
     @Schema(description = "ID del artista asociado a la canción", example = "1")
     private Long artistId;
 
+    @Schema(description = "Nombre del artista asociado a la canción", example = "Taylor Swift")
+    private String artistName;
+
     @Schema(description = "ID del álbum asociado, puede ser nulo si la canción no tiene álbum", example = "2")
     private Long albumId;
+
+    @Schema(description = "Título del álbum asociado, puede ser nulo si la canción no tiene álbum", example = "1989", nullable = true)
+    private String albumTitle;
+
+    @Schema(description = "Portada del álbum asociado, útil como fallback cuando la portada de la canción es nula", example = "/uploads/images/album_1989.jpg", nullable = true)
+    private String albumCover;
 
     @Schema(description = "Título de la canción", example = "Mi Cancion Favorita")
     private String title;
