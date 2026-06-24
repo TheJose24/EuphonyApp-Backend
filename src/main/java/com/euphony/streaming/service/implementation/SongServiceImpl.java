@@ -55,7 +55,7 @@ public class SongServiceImpl implements ISongService {
     @Cacheable(value = "songs", key = "'all'")
     public List<SongResponseDTO> findAllSongs() {
         log.info("Buscando todas las canciones");
-        return cancionRepository.findAll().stream()
+        return cancionRepository.findAllWithArtistAndAlbum().stream()
                 .map(this::mapToSongResponseDTO)
                 .toList();
     }
@@ -65,7 +65,7 @@ public class SongServiceImpl implements ISongService {
     @Cacheable(value = "songs", key = "#songId")
     public SongResponseDTO searchSongById(Long songId) {
         log.info("Buscando canción por id: {}", songId);
-        return cancionRepository.findById(songId)
+        return cancionRepository.findByIdWithArtistAndAlbum(songId)
                 .map(this::mapToSongResponseDTO)
                 .orElseThrow(() -> new SongNotFoundException(
                         String.format(ERROR_SONG_NOT_FOUND, songId),
@@ -353,11 +353,25 @@ public class SongServiceImpl implements ISongService {
     private SongResponseDTO mapToSongResponseDTO(CancionEntity cancionEntity) {
         Set<String> genres = fetchGenresForSong(cancionEntity.getIdCancion());
 
+        ArtistaEntity artista = cancionEntity.getArtista();
+        AlbumEntity album = cancionEntity.getAlbum();
+
         return SongResponseDTO.builder()
                 .songId(cancionEntity.getIdCancion())
-                .artistId(cancionEntity.getArtista().getIdArtista())
-                .albumId(Optional.ofNullable(cancionEntity.getAlbum())
+                .artistId(Optional.ofNullable(artista)
+                        .map(ArtistaEntity::getIdArtista)
+                        .orElse(null))
+                .artistName(Optional.ofNullable(artista)
+                        .map(ArtistaEntity::getNombre)
+                        .orElse(null))
+                .albumId(Optional.ofNullable(album)
                         .map(AlbumEntity::getIdAlbum)
+                        .orElse(null))
+                .albumTitle(Optional.ofNullable(album)
+                        .map(AlbumEntity::getTitulo)
+                        .orElse(null))
+                .albumCover(Optional.ofNullable(album)
+                        .map(AlbumEntity::getPortada)
                         .orElse(null))
                 .title(cancionEntity.getTitulo())
                 .coverImg(cancionEntity.getPortada())
