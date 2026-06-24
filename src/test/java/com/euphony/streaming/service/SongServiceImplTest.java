@@ -12,6 +12,7 @@ import com.euphony.streaming.repository.GeneroRepository;
 import com.euphony.streaming.service.implementation.SongServiceImpl;
 import com.euphony.streaming.service.interfaces.IFileStorageService;
 import com.euphony.streaming.service.interfaces.ISongMetadataService;
+import com.euphony.streaming.util.SongGenreProjection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -19,9 +20,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
@@ -54,8 +57,22 @@ class SongServiceImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        // Por defecto, las canciones no tienen géneros asociados (no es el foco de estas pruebas).
+        // Por defecto, las canciones no tienen géneros asociados (no es el foco de la mayoría de pruebas).
         when(cancionGeneroRepository.findByCancion_IdCancion(anyLong())).thenReturn(List.of());
+    }
+
+    private SongGenreProjection genreProjection(Long songId, String genreName) {
+        return new SongGenreProjection() {
+            @Override
+            public Long getSongId() {
+                return songId;
+            }
+
+            @Override
+            public String getGenreName() {
+                return genreName;
+            }
+        };
     }
 
     private ArtistaEntity buildArtist(Long id, String name) {
@@ -121,6 +138,35 @@ class SongServiceImplTest {
         assertNull(dto.getAlbumId());
         assertNull(dto.getAlbumTitle());
         assertNull(dto.getAlbumCover());
+    }
+
+    @Test
+    void findAllSongs_groupsGenresPerSongFromSingleQuery() {
+        // Arrange
+        ArtistaEntity artist = buildArtist(1L, "Taylor Swift");
+        AlbumEntity album = buildAlbum(2L, "1989", "/uploads/images/album_1989.jpg");
+        CancionEntity songWithGenres = buildSong(10L, artist, album);
+        CancionEntity songWithoutGenres = buildSong(11L, artist, null);
+
+        when(cancionRepository.findAllWithArtistAndAlbum())
+                .thenReturn(List.of(songWithGenres, songWithoutGenres));
+        // Una sola consulta batcheada devuelve los pares (songId, genreName).
+        when(cancionGeneroRepository.findGenresByCancionIds(anyCollection()))
+                .thenReturn(List.of(
+                        genreProjection(10L, "Pop"),
+                        genreProjection(10L, "Rock")));
+
+        // Act
+        List<SongResponseDTO> result = songService.findAllSongs();
+
+        // Assert
+        SongResponseDTO withGenres = result.stream()
+                .filter(dto -> dto.getSongId().equals(10L)).findFirst().orElseThrow();
+        SongResponseDTO withoutGenres = result.stream()
+                .filter(dto -> dto.getSongId().equals(11L)).findFirst().orElseThrow();
+
+        assertEquals(Set.of("Pop", "Rock"), withGenres.getGenres());
+        assertEquals(Set.of(), withoutGenres.getGenres());
     }
 
     @Test

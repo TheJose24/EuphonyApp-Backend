@@ -11,6 +11,7 @@ import com.euphony.streaming.repository.*;
 import com.euphony.streaming.service.interfaces.IFileStorageService;
 import com.euphony.streaming.service.interfaces.ISongMetadataService;
 import com.euphony.streaming.service.interfaces.ISongService;
+import com.euphony.streaming.util.SongGenreProjection;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,8 +56,15 @@ public class SongServiceImpl implements ISongService {
     @Cacheable(value = "songs", key = "'all'")
     public List<SongResponseDTO> findAllSongs() {
         log.info("Buscando todas las canciones");
-        return cancionRepository.findAllWithArtistAndAlbum().stream()
-                .map(this::mapToSongResponseDTO)
+        List<CancionEntity> songs = cancionRepository.findAllWithArtistAndAlbum();
+
+        // Se resuelven los géneros de todas las canciones en una sola consulta (evita N+1).
+        Map<Long, Set<String>> genresBySong = fetchGenresBySongIds(
+                songs.stream().map(CancionEntity::getIdCancion).toList());
+
+        return songs.stream()
+                .map(song -> mapToSongResponseDTO(song,
+                        genresBySong.getOrDefault(song.getIdCancion(), Set.of())))
                 .toList();
     }
 
@@ -66,7 +74,7 @@ public class SongServiceImpl implements ISongService {
     public SongResponseDTO searchSongById(Long songId) {
         log.info("Buscando canción por id: {}", songId);
         return cancionRepository.findByIdWithArtistAndAlbum(songId)
-                .map(this::mapToSongResponseDTO)
+                .map(song -> mapToSongResponseDTO(song, fetchGenresForSong(song.getIdCancion())))
                 .orElseThrow(() -> new SongNotFoundException(
                         String.format(ERROR_SONG_NOT_FOUND, songId),
                         HttpStatus.NOT_FOUND
@@ -348,11 +356,9 @@ public class SongServiceImpl implements ISongService {
     }
 
     /**
-     * Mapea una entidad CancionEntity a un SongResponseDTO.
+     * Mapea una entidad CancionEntity a un SongResponseDTO usando los géneros ya resueltos.
      */
-    private SongResponseDTO mapToSongResponseDTO(CancionEntity cancionEntity) {
-        Set<String> genres = fetchGenresForSong(cancionEntity.getIdCancion());
-
+    private SongResponseDTO mapToSongResponseDTO(CancionEntity cancionEntity, Set<String> genres) {
         ArtistaEntity artista = cancionEntity.getArtista();
         AlbumEntity album = cancionEntity.getAlbum();
 
@@ -396,5 +402,20 @@ public class SongServiceImpl implements ISongService {
                 .map(GeneroEntity::getNombre)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * Recupera los géneros de varias canciones en una sola consulta y los agrupa por
+     * ID de canción. Evita el problema N+1 al listar canciones con sus géneros.
+     */
+    private Map<Long, Set<String>> fetchGenresBySongIds(List<Long> songIds) {
+        if (songIds.isEmpty()) {
+            return Map.of();
+        }
+        return cancionGeneroRepository.findGenresByCancionIds(songIds).stream()
+                .filter(projection -> projection.getGenreName() != null)
+                .collect(Collectors.groupingBy(
+                        SongGenreProjection::getSongId,
+                        Collectors.mapping(SongGenreProjection::getGenreName, Collectors.toSet())));
     }
 }
