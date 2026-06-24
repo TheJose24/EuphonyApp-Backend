@@ -38,7 +38,7 @@ import java.util.Optional;
 @CacheConfig(cacheNames = "albums")
 public class AlbumServiceImpl implements IAlbumService {
 
-    private static final String DEFAULT_COVER_PATH  = "/uploads/default_cover_art.png";
+    private static final String DEFAULT_COVER_PATH  = "/uploads/images/default_cover_art.png";
     private static final String CONTENT_TYPE_IMAGE  = "IMAGE";
     private static final String ALBUM_NOT_FOUND_MESSAGE  = "Álbum no encontrado con %s: %s";
     private static final String ERROR_PROCESSING_MESSAGE  = "Error al procesar %s del álbum: %s";
@@ -67,6 +67,23 @@ public class AlbumServiceImpl implements IAlbumService {
                 .map(this::mapToAlbumResponseDTO)
                 .orElseThrow(() -> new AlbumNotFoundException(
                         String.format(ALBUM_NOT_FOUND_MESSAGE, "nombre", name),
+                        HttpStatus.NOT_FOUND
+                ));
+    }
+
+    public List<AlbumResponseDTO> findAlbumsByArtist(String artist) {
+        log.debug("Buscando álbumes del artista: {}", artist);
+        return albumRepository.findByArtistaNombre(artist).stream()
+                .map(this::mapToAlbumResponseDTO)
+                .toList();
+    }
+
+    public AlbumResponseDTO findAlbumById(Long id) {
+        log.debug("Buscando álbum con ID: {}", id);
+        return albumRepository.findById(id)
+                .map(this::mapToAlbumResponseDTO)
+                .orElseThrow(() -> new AlbumNotFoundException(
+                        String.format(ALBUM_NOT_FOUND_MESSAGE, "ID", id),
                         HttpStatus.NOT_FOUND
                 ));
     }
