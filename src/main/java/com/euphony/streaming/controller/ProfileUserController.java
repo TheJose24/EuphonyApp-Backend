@@ -63,4 +63,12 @@ public class ProfileUserController {
         perfilUsuarioService.updateProfile(userId, userProfileRequestDTO);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/profile-image/{userId}")
+    @Operation(summary = "Obtener imagen de perfil")
+    @ApiResponse(responseCode = "200", description = "Imagen de perfil", content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class)))
+    public ResponseEntity<String> getProfileImage(@PathVariable UUID userId) {
+        String imgPerfil = perfilUsuarioService.SearchImageProfileByUsuarioId(userId);
+        return ResponseEntity.ok(imgPerfil);
+    }
 }

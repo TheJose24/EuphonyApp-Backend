@@ -43,6 +43,13 @@ public class ProfileUserServiceImpl implements IProfileUserService {
     }
 
     @Override
+    public String SearchImageProfileByUsuarioId(UUID usuarioId) {
+        return perfilUsuarioRepository.findByUsuarioIdUsuario(usuarioId)
+                .map(PerfilUsuarioEntity::getImgPerfil)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con id: " + usuarioId, HttpStatus.NOT_FOUND));
+    }
+
+    @Override
     public void deleteProfile(UUID profileId) {
         PerfilUsuarioEntity perfilUsuarioEntity = perfilUsuarioRepository.findByUsuarioIdUsuario(profileId)
                 .orElseThrow(() -> new UserNotFoundException("Perfil de usuario no encontrado con id: " + profileId, HttpStatus.NOT_FOUND));
