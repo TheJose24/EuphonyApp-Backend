@@ -27,10 +27,7 @@ import com.euphony.streaming.exception.custom.song.SongDeletionException;
 import com.euphony.streaming.exception.custom.song.SongNotFoundException;
 import com.euphony.streaming.exception.custom.song.SongUpdateException;
 import com.euphony.streaming.exception.custom.storage.FileStorageException;
-import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansCreationException;
-import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansDeletionException;
-import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansNotFoundException;
-import com.euphony.streaming.exception.custom.subcriptionplans.SubscriptionPlansUpdateException;
+import com.euphony.streaming.exception.custom.subcriptionplans.*;
 import com.euphony.streaming.exception.custom.user.UserCreationException;
 import com.euphony.streaming.exception.custom.user.UserDeletionException;
 import com.euphony.streaming.exception.custom.user.UserNotFoundException;
@@ -159,6 +156,7 @@ public class GlobalExceptionHandler {
             SubscriptionPlansNotFoundException.class,
             SubscriptionPlansUpdateException.class,
             SubscriptionPlansDeletionException.class,
+            InvalidPlanConfigurationException.class,
     })
     public ResponseEntity<String> handleSubscriptionExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
