@@ -1,9 +1,84 @@
 services:
-  postgres:
-    image: 'postgres:latest'
-    environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: euphony_app
     ports:
-      - '5432'
+      - "8088:8080"
+    environment:
+      - DB_URL=${DB_URL}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - ISSUER_URI=${ISSUER_URI}
+      - JWK_SET_URI=${JWK_SET_URI}
+      - KEYCLOAK_CLIENT_ADMIN_CLI=${KEYCLOAK_CLIENT_ADMIN_CLI}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_PASSWORD_CONSOLE=${KEYCLOAK_PASSWORD_CONSOLE}
+      - KEYCLOAK_REALM_MASTER=${KEYCLOAK_REALM_MASTER}
+      - KEYCLOAK_REALM_NAME=${KEYCLOAK_REALM_NAME}
+      - KEYCLOAK_SERVER_URL=${KEYCLOAK_SERVER_URL}
+      - KEYCLOAK_USER_CONSOLE=${KEYCLOAK_USER_CONSOLE}
+      - PROMETHEUS_USERNAME=${PROMETHEUS_USERNAME}
+      - PROMETHEUS_PASSWORD=${PROMETHEUS_PASSWORD}
+      - FRONTEND_URL=${FRONTEND_URL}
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - euphony-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: euphony-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - euphony-network
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: euphony-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=j0s33nr1qu3
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - euphony-network
+    depends_on:
+      - prometheus
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: euphony-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    networks:
+      - euphony-network
+
+networks:
+  euphony-network:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  uploads:
