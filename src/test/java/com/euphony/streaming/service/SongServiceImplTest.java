@@ -4,6 +4,8 @@ import com.euphony.streaming.dto.response.SongResponseDTO;
 import com.euphony.streaming.entity.AlbumEntity;
 import com.euphony.streaming.entity.ArtistaEntity;
 import com.euphony.streaming.entity.CancionEntity;
+import com.euphony.streaming.exception.custom.album.AlbumNotFoundException;
+import com.euphony.streaming.exception.custom.artist.ArtistNotFoundException;
 import com.euphony.streaming.repository.AlbumRepository;
 import com.euphony.streaming.repository.ArtistaRepository;
 import com.euphony.streaming.repository.CancionGeneroRepository;
@@ -24,6 +26,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -202,5 +205,79 @@ class SongServiceImplTest {
         assertEquals("Taylor Swift", dto.getArtistName());
         assertEquals("1989", dto.getAlbumTitle());
         assertEquals("/uploads/images/album_1989.jpg", dto.getAlbumCover());
+    }
+
+    @Test
+    void findSongsByAlbum_returnsEnrichedSongsOfThatAlbum() {
+        // Arrange
+        ArtistaEntity artist = buildArtist(1L, "Taylor Swift");
+        AlbumEntity album = buildAlbum(2L, "1989", "/uploads/images/album_1989.jpg");
+        CancionEntity song = buildSong(10L, artist, album);
+
+        when(albumRepository.existsById(2L)).thenReturn(true);
+        when(cancionRepository.findByAlbumIdWithArtistAndAlbum(2L)).thenReturn(List.of(song));
+        when(cancionGeneroRepository.findGenresByCancionIds(anyCollection()))
+                .thenReturn(List.of(genreProjection(10L, "Pop")));
+
+        // Act
+        List<SongResponseDTO> result = songService.findSongsByAlbum(2L);
+
+        // Assert
+        assertEquals(1, result.size());
+        SongResponseDTO dto = result.get(0);
+        assertEquals("Taylor Swift", dto.getArtistName());
+        assertEquals("1989", dto.getAlbumTitle());
+        assertEquals(Set.of("Pop"), dto.getGenres());
+    }
+
+    @Test
+    void findSongsByArtist_returnsSongsOfThatArtist() {
+        // Arrange
+        ArtistaEntity artist = buildArtist(1L, "Taylor Swift");
+        CancionEntity song = buildSong(10L, artist, null);
+
+        when(artistaRepository.existsById(1L)).thenReturn(true);
+        when(cancionRepository.findByArtistIdWithArtistAndAlbum(1L)).thenReturn(List.of(song));
+
+        // Act
+        List<SongResponseDTO> result = songService.findSongsByArtist(1L);
+
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals("Taylor Swift", result.get(0).getArtistName());
+    }
+
+    @Test
+    void findSongsByAlbum_throwsWhenAlbumDoesNotExist() {
+        // Arrange: el álbum no existe.
+        when(albumRepository.existsById(99L)).thenReturn(false);
+
+        // Act + Assert: 404 y nunca se consultan las canciones.
+        assertThrows(AlbumNotFoundException.class, () -> songService.findSongsByAlbum(99L));
+        verify(cancionRepository, never()).findByAlbumIdWithArtistAndAlbum(anyLong());
+    }
+
+    @Test
+    void findSongsByArtist_throwsWhenArtistDoesNotExist() {
+        // Arrange: el artista no existe.
+        when(artistaRepository.existsById(99L)).thenReturn(false);
+
+        // Act + Assert: 404 y nunca se consultan las canciones.
+        assertThrows(ArtistNotFoundException.class, () -> songService.findSongsByArtist(99L));
+        verify(cancionRepository, never()).findByArtistIdWithArtistAndAlbum(anyLong());
+    }
+
+    @Test
+    void findSongsByAlbum_existingAlbumWithoutSongsReturnsEmptyAndSkipsGenreQuery() {
+        // Arrange: el álbum existe pero no tiene canciones.
+        when(albumRepository.existsById(2L)).thenReturn(true);
+        when(cancionRepository.findByAlbumIdWithArtistAndAlbum(2L)).thenReturn(List.of());
+
+        // Act
+        List<SongResponseDTO> result = songService.findSongsByAlbum(2L);
+
+        // Assert: lista vacía y la consulta de géneros nunca se ejecuta (no se genera un IN ()).
+        assertTrue(result.isEmpty());
+        verify(cancionGeneroRepository, never()).findGenresByCancionIds(anyCollection());
     }
 }
