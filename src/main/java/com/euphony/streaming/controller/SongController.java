@@ -15,13 +15,19 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 @Slf4j
@@ -120,5 +126,85 @@ public class SongController {
             @RequestPart("songRequest") SongRequestDTO songRequestDTO) throws IOException {
         songService.updateSong(id, coverArtFile, songRequestDTO);
         return ResponseEntity.ok().build();
+    }
+
+
+
+    @GetMapping("/stream/{id}")
+    @Operation(summary = "Reproducir canción", description = "Transmite una canción en streaming")
+    @Parameter(name = "id", description = "Identificador único de la canción a reproducir", required = true)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Streaming iniciado exitosamente"),
+            @ApiResponse(responseCode = "404", description = "Canción no encontrada"),
+            @ApiResponse(responseCode = "500", description = "Error al procesar el streaming")
+    })
+    public ResponseEntity<StreamingResponseBody> streamSong(
+            @PathVariable Long id,
+            @RequestHeader(value = "Range", required = false) String rangeHeader) {
+
+        try {
+            // Obtener el path del archivo
+            Path songPath = songService.getSongFilePath(id);
+            if (!Files.exists(songPath)) {
+                log.error("Canción no encontrada: {}", id);
+                return ResponseEntity.notFound().build();
+            }
+
+            // Obtener el tamaño del archivo
+            long fileSize = Files.size(songPath);
+
+            // Procesar el header Range si existe
+            long rangeStart;
+            long rangeEnd = fileSize - 1;
+
+            if (rangeHeader != null && !rangeHeader.isEmpty()) {
+                String[] ranges = rangeHeader.substring("bytes=".length()).split("-");
+                rangeStart = Long.parseLong(ranges[0]);
+                if (ranges.length > 1) {
+                    rangeEnd = Long.parseLong(ranges[1]);
+                }
+            } else {
+                rangeStart = 0;
+            }
+
+            // Calcular el tamaño del contenido a enviar
+            long contentLength = rangeEnd - rangeStart + 1;
+
+            // Crear el StreamingResponseBody
+            StreamingResponseBody responseStream = outputStream -> {
+                try (InputStream inputStream = Files.newInputStream(songPath);
+                     BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream)) {
+
+                    // Saltar hasta el inicio del rango solicitado
+                    bufferedInputStream.skip(rangeStart);
+
+                    // Buffer para la transmisión
+                    byte[] buffer = new byte[8192];
+                    long bytesRemaining = contentLength;
+                    int bytesRead;
+
+                    while (bytesRemaining > 0 && (bytesRead = bufferedInputStream.read(buffer, 0,
+                            (int) Math.min(buffer.length, bytesRemaining))) != -1) {
+                        outputStream.write(buffer, 0, bytesRead);
+                        bytesRemaining -= bytesRead;
+                    }
+
+                    outputStream.flush();
+                }
+            };
+
+            // Construir la respuesta con los headers apropiados
+            return ResponseEntity.status(rangeHeader != null ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK)
+                    .contentType(MediaType.parseMediaType("audio/mpeg"))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + songPath.getFileName().toString() + "\"")
+                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                    .header(HttpHeaders.CONTENT_RANGE, String.format("bytes %d-%d/%d", rangeStart, rangeEnd, fileSize))
+                    .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(contentLength))
+                    .body(responseStream);
+
+        } catch (IOException e) {
+            log.error("Error al procesar el streaming de la canción: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
