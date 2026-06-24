@@ -394,6 +394,7 @@ public class SongServiceImpl implements ISongService {
 
     /**
      * Recupera los géneros para una canción.
+     * Se usa un TreeSet para devolverlos en orden alfabético determinista.
      */
     private Set<String> fetchGenresForSong(Long songId) {
         return cancionGeneroRepository.findByCancion_IdCancion(songId).stream()
@@ -401,12 +402,14 @@ public class SongServiceImpl implements ISongService {
                 .filter(Objects::nonNull)
                 .map(GeneroEntity::getNombre)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(TreeSet::new));
     }
 
     /**
      * Recupera los géneros de varias canciones en una sola consulta y los agrupa por
      * ID de canción. Evita el problema N+1 al listar canciones con sus géneros.
+     * Si no hay canciones, evita ejecutar la consulta (no genera un {@code IN ()}).
+     * Cada conjunto es un TreeSet para devolver los géneros en orden alfabético determinista.
      */
     private Map<Long, Set<String>> fetchGenresBySongIds(List<Long> songIds) {
         if (songIds.isEmpty()) {
@@ -416,6 +419,7 @@ public class SongServiceImpl implements ISongService {
                 .filter(projection -> projection.getGenreName() != null)
                 .collect(Collectors.groupingBy(
                         SongGenreProjection::getSongId,
-                        Collectors.mapping(SongGenreProjection::getGenreName, Collectors.toSet())));
+                        Collectors.mapping(SongGenreProjection::getGenreName,
+                                Collectors.toCollection(TreeSet::new))));
     }
 }

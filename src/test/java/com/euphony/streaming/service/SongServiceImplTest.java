@@ -24,8 +24,11 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SongServiceImplTest {
@@ -150,11 +153,11 @@ class SongServiceImplTest {
 
         when(cancionRepository.findAllWithArtistAndAlbum())
                 .thenReturn(List.of(songWithGenres, songWithoutGenres));
-        // Una sola consulta batcheada devuelve los pares (songId, genreName).
+        // Una sola consulta batcheada devuelve los pares (songId, genreName), desordenados a propósito.
         when(cancionGeneroRepository.findGenresByCancionIds(anyCollection()))
                 .thenReturn(List.of(
-                        genreProjection(10L, "Pop"),
-                        genreProjection(10L, "Rock")));
+                        genreProjection(10L, "Rock"),
+                        genreProjection(10L, "Pop")));
 
         // Act
         List<SongResponseDTO> result = songService.findAllSongs();
@@ -165,8 +168,22 @@ class SongServiceImplTest {
         SongResponseDTO withoutGenres = result.stream()
                 .filter(dto -> dto.getSongId().equals(11L)).findFirst().orElseThrow();
 
-        assertEquals(Set.of("Pop", "Rock"), withGenres.getGenres());
+        // Los géneros se devuelven en orden alfabético determinista, no en el de llegada.
+        assertEquals(List.of("Pop", "Rock"), List.copyOf(withGenres.getGenres()));
         assertEquals(Set.of(), withoutGenres.getGenres());
+    }
+
+    @Test
+    void findAllSongs_skipsGenreQueryWhenNoSongs() {
+        // Arrange: no hay canciones.
+        when(cancionRepository.findAllWithArtistAndAlbum()).thenReturn(List.of());
+
+        // Act
+        List<SongResponseDTO> result = songService.findAllSongs();
+
+        // Assert: lista vacía y la consulta de géneros nunca se ejecuta (no se genera un IN ()).
+        assertTrue(result.isEmpty());
+        verify(cancionGeneroRepository, never()).findGenresByCancionIds(anyCollection());
     }
 
     @Test
