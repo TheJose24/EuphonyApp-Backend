@@ -99,6 +99,58 @@ public class SongController {
         return ResponseEntity.ok(songService.searchSongById(id));
     }
 
+    @GetMapping("/search/by-album/{albumId}")
+    @Operation(
+            summary = "Listar canciones por álbum",
+            description = "Recupera las canciones de un álbum específico, con artista, álbum y géneros"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Canciones del álbum recuperadas exitosamente",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    array = @ArraySchema(schema = @Schema(implementation = SongResponseDTO.class))
+            )
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Álbum no encontrado",
+            content = @Content
+    )
+    public ResponseEntity<List<SongResponseDTO>> getSongsByAlbum(
+            @Parameter(description = "ID del álbum", required = true)
+            @PathVariable Long albumId
+    ) {
+        log.debug("REST request to get Songs by album : {}", albumId);
+        return ResponseEntity.ok(songService.findSongsByAlbum(albumId));
+    }
+
+    @GetMapping("/search/by-artist/{artistId}")
+    @Operation(
+            summary = "Listar canciones por artista",
+            description = "Recupera las canciones de un artista específico, con artista, álbum y géneros"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Canciones del artista recuperadas exitosamente",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    array = @ArraySchema(schema = @Schema(implementation = SongResponseDTO.class))
+            )
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Artista no encontrado",
+            content = @Content
+    )
+    public ResponseEntity<List<SongResponseDTO>> getSongsByArtist(
+            @Parameter(description = "ID del artista", required = true)
+            @PathVariable Long artistId
+    ) {
+        log.debug("REST request to get Songs by artist : {}", artistId);
+        return ResponseEntity.ok(songService.findSongsByArtist(artistId));
+    }
+
     @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "Analizar metadatos",

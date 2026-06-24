@@ -29,4 +29,24 @@ public interface CancionRepository extends JpaRepository<CancionEntity, Long> {
             "WHERE c.idCancion = :songId")
     Optional<CancionEntity> findByIdWithArtistAndAlbum(@Param("songId") Long songId);
 
+    /**
+     * Recupera las canciones de un álbum trayendo el artista y el álbum en la misma
+     * consulta mediante {@code LEFT JOIN FETCH}, evitando el problema N+1.
+     */
+    @Query("SELECT c FROM CancionEntity c " +
+            "LEFT JOIN FETCH c.artista " +
+            "LEFT JOIN FETCH c.album " +
+            "WHERE c.album.idAlbum = :albumId")
+    List<CancionEntity> findByAlbumIdWithArtistAndAlbum(@Param("albumId") Long albumId);
+
+    /**
+     * Recupera las canciones de un artista trayendo el artista y el álbum en la misma
+     * consulta mediante {@code LEFT JOIN FETCH}, evitando el problema N+1.
+     */
+    @Query("SELECT c FROM CancionEntity c " +
+            "LEFT JOIN FETCH c.artista " +
+            "LEFT JOIN FETCH c.album " +
+            "WHERE c.artista.idArtista = :artistId")
+    List<CancionEntity> findByArtistIdWithArtistAndAlbum(@Param("artistId") Long artistId);
+
 }
