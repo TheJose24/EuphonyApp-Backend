@@ -23,6 +23,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -275,6 +276,79 @@ class SongServiceImplTest {
 
         // Act
         List<SongResponseDTO> result = songService.findSongsByAlbum(2L);
+
+        // Assert: lista vacía y la consulta de géneros nunca se ejecuta (no se genera un IN ()).
+        assertTrue(result.isEmpty());
+        verify(cancionGeneroRepository, never()).findGenresByCancionIds(anyCollection());
+    }
+
+    @Test
+    void findFavoriteSongsByUser_returnsEnrichedSongsWithBatchedGenres() {
+        // Arrange: las canciones favoritas se mapean con el mismo patrón enriquecido (artista,
+        // álbum y géneros en una sola consulta batcheada).
+        UUID userId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        ArtistaEntity artist = buildArtist(1L, "Taylor Swift");
+        AlbumEntity album = buildAlbum(2L, "1989", "/uploads/images/album_1989.jpg");
+        CancionEntity song = buildSong(10L, artist, album);
+
+        when(cancionRepository.findFavoriteSongsByUser(userId)).thenReturn(List.of(song));
+        when(cancionGeneroRepository.findGenresByCancionIds(anyCollection()))
+                .thenReturn(List.of(genreProjection(10L, "Pop")));
+
+        // Act
+        List<SongResponseDTO> result = songService.findFavoriteSongsByUser(userId);
+
+        // Assert
+        assertEquals(1, result.size());
+        SongResponseDTO dto = result.get(0);
+        assertEquals("Taylor Swift", dto.getArtistName());
+        assertEquals("1989", dto.getAlbumTitle());
+        assertEquals(Set.of("Pop"), dto.getGenres());
+    }
+
+    @Test
+    void findFavoriteSongsByUser_skipsGenreQueryWhenNoFavorites() {
+        // Arrange: el usuario no tiene canciones favoritas.
+        UUID userId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        when(cancionRepository.findFavoriteSongsByUser(userId)).thenReturn(List.of());
+
+        // Act
+        List<SongResponseDTO> result = songService.findFavoriteSongsByUser(userId);
+
+        // Assert: lista vacía y la consulta de géneros nunca se ejecuta (no se genera un IN ()).
+        assertTrue(result.isEmpty());
+        verify(cancionGeneroRepository, never()).findGenresByCancionIds(anyCollection());
+    }
+
+    @Test
+    void findSongsByPlaylist_returnsEnrichedSongsWithBatchedGenres() {
+        // Arrange: las canciones de una playlist se mapean con el mismo patrón enriquecido sin N+1.
+        ArtistaEntity artist = buildArtist(1L, "Taylor Swift");
+        AlbumEntity album = buildAlbum(2L, "1989", "/uploads/images/album_1989.jpg");
+        CancionEntity song = buildSong(10L, artist, album);
+
+        when(cancionRepository.findSongsByPlaylistId(5L)).thenReturn(List.of(song));
+        when(cancionGeneroRepository.findGenresByCancionIds(anyCollection()))
+                .thenReturn(List.of(genreProjection(10L, "Pop")));
+
+        // Act
+        List<SongResponseDTO> result = songService.findSongsByPlaylist(5L);
+
+        // Assert
+        assertEquals(1, result.size());
+        SongResponseDTO dto = result.get(0);
+        assertEquals("Taylor Swift", dto.getArtistName());
+        assertEquals("1989", dto.getAlbumTitle());
+        assertEquals(Set.of("Pop"), dto.getGenres());
+    }
+
+    @Test
+    void findSongsByPlaylist_skipsGenreQueryWhenEmpty() {
+        // Arrange: la playlist no tiene canciones.
+        when(cancionRepository.findSongsByPlaylistId(5L)).thenReturn(List.of());
+
+        // Act
+        List<SongResponseDTO> result = songService.findSongsByPlaylist(5L);
 
         // Assert: lista vacía y la consulta de géneros nunca se ejecuta (no se genera un IN ()).
         assertTrue(result.isEmpty());

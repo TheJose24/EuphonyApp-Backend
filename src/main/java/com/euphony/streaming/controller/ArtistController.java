@@ -13,8 +13,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -52,33 +54,42 @@ public class ArtistController {
         return ResponseEntity.ok(artistService.findArtistByName(name));
     }
 
-    @Operation(summary = "Crear un nuevo artista")
+    @Operation(summary = "Crear un nuevo artista",
+            description = "Crea un artista con una imagen opcional. Se envía como multipart/form-data: " +
+                    "la parte 'artistRequestDTO' (JSON) con los datos y la parte 'imageFile' (archivo) opcional.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Artista creado exitosamente"),
             @ApiResponse(responseCode = "409", description = "El artista ya existe"),
             @ApiResponse(responseCode = "400", description = "Datos de artista inválidos")
     })
-    @PostMapping("/create")
+    @PostMapping(value = "/create", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<Void> createArtist(
             @Parameter(description = "Datos del artista a crear")
-            @RequestBody ArtistRequestDTO artistRequestDTO) {
-        artistService.createArtist(artistRequestDTO);
+            @RequestPart("artistRequestDTO") ArtistRequestDTO artistRequestDTO,
+            @Parameter(description = "Imagen del artista (opcional)")
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
+        artistService.createArtist(artistRequestDTO, imageFile);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @Operation(summary = "Actualizar un artista existente")
+    @Operation(summary = "Actualizar un artista existente",
+            description = "Actualiza los datos del artista y, opcionalmente, su imagen. Se envía como " +
+                    "multipart/form-data: la parte 'artistRequestDTO' (JSON) y la parte 'imageFile' (archivo) " +
+                    "opcional. Si no se envía 'imageFile', se conserva la imagen actual.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Artista actualizado exitosamente"),
             @ApiResponse(responseCode = "404", description = "Artista no encontrado"),
             @ApiResponse(responseCode = "400", description = "Datos de artista inválidos")
     })
-    @PutMapping("/update/{id}")
+    @PutMapping(value = "/update/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<Void> updateArtist(
             @Parameter(description = "ID del artista a actualizar")
             @PathVariable Long id,
             @Parameter(description = "Nuevos datos del artista")
-            @RequestBody ArtistRequestDTO artistRequestDTO) {
-        artistService.updateArtist(id, artistRequestDTO);
+            @RequestPart("artistRequestDTO") ArtistRequestDTO artistRequestDTO,
+            @Parameter(description = "Nueva imagen del artista (opcional)")
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
+        artistService.updateArtist(id, artistRequestDTO, imageFile);
         return ResponseEntity.ok().build();
     }
 
