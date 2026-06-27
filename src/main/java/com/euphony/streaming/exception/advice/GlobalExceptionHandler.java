@@ -9,6 +9,7 @@ import com.euphony.streaming.exception.custom.artist.ArtistCreationException;
 import com.euphony.streaming.exception.custom.artist.ArtistDeletionException;
 import com.euphony.streaming.exception.custom.artist.ArtistNotFoundException;
 import com.euphony.streaming.exception.custom.artist.ArtistUpdateException;
+import com.euphony.streaming.exception.custom.favorite.FavoriteBadRequestException;
 import com.euphony.streaming.exception.custom.follow.FollowAlreadyExistsException;
 import com.euphony.streaming.exception.custom.follow.FollowBadRequestException;
 import com.euphony.streaming.exception.custom.follow.FollowNotFoundException;
@@ -107,6 +108,14 @@ public class GlobalExceptionHandler {
             FollowNotFoundException.class
     })
     public ResponseEntity<String> handleFollowExceptions(RuntimeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
+    }
+
+    // Manejo de excepciones para Favoritos
+    @ExceptionHandler({
+            FavoriteBadRequestException.class
+    })
+    public ResponseEntity<String> handleFavoriteExceptions(RuntimeException ex) {
         return new ResponseEntity<>(ex.getMessage(), getStatusFromException(ex));
     }
 

@@ -1,8 +1,9 @@
 package com.euphony.streaming.controller;
 
 import com.euphony.streaming.dto.request.PlaylistRequestDTO;
+import com.euphony.streaming.dto.request.PlaylistSongRequestDTO;
 import com.euphony.streaming.dto.response.PlaylistResponseDTO;
-import com.euphony.streaming.dto.response.SongInPlaylistResponseDTO;
+import com.euphony.streaming.dto.response.SongResponseDTO;
 import com.euphony.streaming.service.implementation.PlaylistServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -142,7 +143,8 @@ public class PlaylistController {
     @GetMapping("/{playlistId}/songs")
     @Operation(
             summary = "Obtener canciones de una playlist",
-            description = "Recupera todas las canciones que pertenecen a una playlist específica"
+            description = "Recupera las canciones de una playlist con el mismo SongResponseDTO enriquecido " +
+                    "(artista, álbum, portada, géneros) que GET /songs/all, sin N+1 y en el orden en que se añadieron."
     )
     @ApiResponses({
             @ApiResponse(
@@ -150,7 +152,7 @@ public class PlaylistController {
                     description = "Canciones recuperadas exitosamente",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = SongInPlaylistResponseDTO.class))
+                            array = @ArraySchema(schema = @Schema(implementation = SongResponseDTO.class))
                     )
             ),
             @ApiResponse(
@@ -158,25 +160,26 @@ public class PlaylistController {
                     description = "Playlist no encontrada"
             )
     })
-    public ResponseEntity<List<SongInPlaylistResponseDTO>> getPlaylistSongs(
+    public ResponseEntity<List<SongResponseDTO>> getPlaylistSongs(
             @Parameter(description = "ID de la playlist", required = true)
             @PathVariable Long playlistId) {
 
         log.info("Obteniendo canciones de la playlist ID: {}", playlistId);
-        List<SongInPlaylistResponseDTO> songs = playlistService.getPlaylistSongs(playlistId);
+        List<SongResponseDTO> songs = playlistService.getPlaylistSongs(playlistId);
         return ResponseEntity.ok(songs);
     }
 
 
-    @PostMapping("/{playlistId}/add/songs/{songId}")
+    @PostMapping("/{playlistId}/songs")
     @Operation(
             summary = "Agregar canción a playlist",
-            description = "Agrega una canción existente a una playlist específica"
+            description = "Agrega una canción existente a una playlist. Idempotente: agregar una canción ya " +
+                    "presente no produce error."
     )
     @ApiResponses({
             @ApiResponse(
-                    responseCode = "200",
-                    description = "Canción agregada exitosamente a la playlist"
+                    responseCode = "201",
+                    description = "Canción agregada a la playlist (sin body)"
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -190,27 +193,24 @@ public class PlaylistController {
     public ResponseEntity<Void> addSongToPlaylist(
             @Parameter(description = "ID de la playlist", required = true)
             @PathVariable Long playlistId,
-            @Parameter(description = "ID de la canción", required = true)
-            @PathVariable Long songId) {
+            @Parameter(description = "ID de la canción a agregar", required = true)
+            @Valid @RequestBody PlaylistSongRequestDTO request) {
 
-        log.info("Agregando canción ID: {} a playlist ID: {}", songId, playlistId);
-        playlistService.addSongToPlaylist(playlistId, songId);
-        return ResponseEntity.ok().build();
+        log.info("Agregando canción ID: {} a playlist ID: {}", request.getSongId(), playlistId);
+        playlistService.addSongToPlaylist(playlistId, request.getSongId());
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @DeleteMapping("/{playlistId}/delete/songs/{songId}")
+    @DeleteMapping("/{playlistId}/songs/{songId}")
     @Operation(
             summary = "Eliminar canción de playlist",
-            description = "Elimina una canción específica de una playlist"
+            description = "Elimina una canción de una playlist. Idempotente: quitar algo que no estaba no " +
+                    "produce error (no devuelve 404)."
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "204",
-                    description = "Canción eliminada exitosamente de la playlist"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Playlist o canción no encontrada"
+                    description = "Canción eliminada de la playlist (sin body)"
             ),
             @ApiResponse(
                     responseCode = "400",

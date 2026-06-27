@@ -34,6 +34,9 @@ public class ArtistaEntity {
     @Column(name = "pais", nullable = false, length = 100)
     private String pais;
 
+    @Column(name = "imagen")
+    private String imagen;
+
     @Column(name = "redes_sociales", columnDefinition = "json")
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, String> redesSociales;

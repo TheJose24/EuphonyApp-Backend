@@ -51,4 +51,7 @@ public class PlaylistResponseDTO {
     @Schema(description = "ID del usuario propietario de la lista de reproducción", example = "123e4567-e89b-12d3-a456-426614174000")
     @NotNull(message = "El ID del usuario no puede ser nulo")
     private UUID userId;
+
+    @Schema(description = "Número de canciones en la playlist", example = "12")
+    private int songCount;
 }

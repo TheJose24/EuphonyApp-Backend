@@ -2,7 +2,7 @@ package com.euphony.streaming.service.implementation;
 
 import com.euphony.streaming.dto.request.PlaylistRequestDTO;
 import com.euphony.streaming.dto.response.PlaylistResponseDTO;
-import com.euphony.streaming.dto.response.SongInPlaylistResponseDTO;
+import com.euphony.streaming.dto.response.SongResponseDTO;
 import com.euphony.streaming.entity.*;
 import com.euphony.streaming.exception.custom.playlist.PlaylistCreationException;
 import com.euphony.streaming.exception.custom.playlist.PlaylistDeletionException;
@@ -15,6 +15,8 @@ import com.euphony.streaming.repository.PlaylistCancionRepository;
 import com.euphony.streaming.repository.PlaylistRepository;
 import com.euphony.streaming.repository.UsuarioRepository;
 import com.euphony.streaming.service.interfaces.IPlaylistService;
+import com.euphony.streaming.service.interfaces.ISongService;
+import com.euphony.streaming.util.PlaylistSongCountProjection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -24,7 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,13 +41,16 @@ public class PlaylistServiceImpl implements IPlaylistService {
     private final PlaylistCancionRepository playlistCancionRepository;
     private final UsuarioRepository usuarioRepository;
     private final CancionRepository songRepository;
+    private final ISongService songService;
 
     @Override
     public List<PlaylistResponseDTO> findAllPlaylists() {
         try {
             log.info("Iniciando búsqueda de todas las listas de reproducción");
-            List<PlaylistResponseDTO> playlists = playlistRepository.findAll().stream()
-                    .map(this::convertToDTO)
+            List<PlaylistEntity> entities = playlistRepository.findAll();
+            Map<Long, Integer> counts = songCountsFor(entities);
+            List<PlaylistResponseDTO> playlists = entities.stream()
+                    .map(entity -> convertToDTO(entity, counts.getOrDefault(entity.getIdPlaylist(), 0)))
                     .collect(Collectors.toList());
             log.info("Búsqueda completada. Se encontraron {} listas de reproducción", playlists.size());
             return playlists;
@@ -63,7 +70,7 @@ public class PlaylistServiceImpl implements IPlaylistService {
             return playlistRepository.findById(id)
                     .map(playlist -> {
                         log.info("Lista de reproducción encontrada: {} (ID: {})", playlist.getNombre(), playlist.getIdPlaylist());
-                        return convertToDTO(playlist);
+                        return convertToDTO(playlist, (int) playlistCancionRepository.countByPlaylistIdPlaylist(playlist.getIdPlaylist()));
                     })
                     .orElseThrow(() -> {
                         log.error("No se encontró la lista de reproducción con ID: {}", id);
@@ -95,9 +102,10 @@ public class PlaylistServiceImpl implements IPlaylistService {
             // Obtener playlists del usuario
             List<PlaylistEntity> playlists = playlistRepository.findByUsuarioIdUsuario(userId);
 
-            // Convertir a DTOs
+            // Convertir a DTOs (conteo de canciones batcheado para evitar N+1)
+            Map<Long, Integer> counts = songCountsFor(playlists);
             List<PlaylistResponseDTO> playlistDTOs = playlists.stream()
-                    .map(this::convertToDTO)
+                    .map(playlist -> convertToDTO(playlist, counts.getOrDefault(playlist.getIdPlaylist(), 0)))
                     .collect(Collectors.toList());
 
             log.info("Se encontraron {} playlists para el usuario {}", playlistDTOs.size(), userId);
@@ -339,143 +347,70 @@ public class PlaylistServiceImpl implements IPlaylistService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SongInPlaylistResponseDTO> getPlaylistSongs(Long playlistId) {
-        try {
-            log.info("Buscando canciones de la playlist ID: {}", playlistId);
+    public List<SongResponseDTO> getPlaylistSongs(Long playlistId) {
+        log.info("Buscando canciones de la playlist ID: {}", playlistId);
 
-            // Validar existencia de la playlist
-            PlaylistEntity playlist = playlistRepository.findById(playlistId)
-                    .orElseThrow(() -> {
-                        log.error("No se encontró la playlist con ID: {}", playlistId);
-                        return new PlaylistNotFoundException("No se encontró la playlist especificada");
-                    });
-
-            // Obtener las relaciones playlist-canción
-            List<PlaylistCancionEntity> playlistCanciones = playlistCancionRepository
-                    .findByPlaylistIdPlaylist(playlistId);
-
-            // Convertir a DTOs
-            List<SongInPlaylistResponseDTO> songs = playlistCanciones.stream()
-                    .map(pc -> SongInPlaylistResponseDTO.builder()
-                            .songId(pc.getCancion().getIdCancion())
-                            .title(pc.getCancion().getTitulo())
-                            .artist(pc.getCancion().getArtista().getNombre())
-                            .album(pc.getCancion().getAlbum().getTitulo())
-                            .duration(pc.getCancion().getDuracion())
-                            .coverArt(pc.getCancion().getPortada())
-                            .build())
-                    .collect(Collectors.toList());
-
-            log.info("Se encontraron {} canciones en la playlist {}", songs.size(), playlistId);
-            return songs;
-
-        } catch (PlaylistNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Error al obtener canciones de la playlist {}: {}", playlistId, e.getMessage());
-            throw new PlaylistNotFoundException(
-                    "Error al obtener las canciones de la playlist",
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+        // Validar existencia de la playlist (404 si no existe).
+        if (!playlistRepository.existsById(playlistId)) {
+            log.error("No se encontró la playlist con ID: {}", playlistId);
+            throw new PlaylistNotFoundException("No se encontró la playlist con ID: " + playlistId, HttpStatus.NOT_FOUND);
         }
+
+        // Reutiliza el mismo SongResponseDTO enriquecido (artista, álbum, géneros) y el patrón sin
+        // N+1 del módulo de canciones; las devuelve en el orden en que se añadieron.
+        List<SongResponseDTO> songs = songService.findSongsByPlaylist(playlistId);
+        log.info("Se encontraron {} canciones en la playlist {}", songs.size(), playlistId);
+        return songs;
     }
 
 
     @Override
     @Transactional
     public void addSongToPlaylist(Long playlistId, Long songId) {
-        try {
-            log.info("Iniciando proceso de agregar canción {} a playlist {}", songId, playlistId);
+        log.info("Iniciando proceso de agregar canción {} a playlist {}", songId, playlistId);
 
-            // Validar playlist
-            PlaylistEntity playlist = playlistRepository.findById(playlistId)
-                    .orElseThrow(() -> {
-                        log.error("No se encontró la playlist con ID: {}", playlistId);
-                        return new PlaylistNotFoundException("No se encontró la playlist especificada");
-                    });
+        // Validar playlist (404).
+        PlaylistEntity playlist = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> {
+                    log.error("No se encontró la playlist con ID: {}", playlistId);
+                    return new PlaylistNotFoundException("No se encontró la playlist con ID: " + playlistId, HttpStatus.NOT_FOUND);
+                });
 
-            // Validar canción
-            CancionEntity song = songRepository.findById(songId)
-                    .orElseThrow(() -> {
-                        log.error("No se encontró la canción con ID: {}", songId);
-                        return new SongNotFoundException("No se encontró la canción especificada", HttpStatus.NOT_FOUND);
-                    });
+        // Validar canción (404).
+        CancionEntity song = songRepository.findById(songId)
+                .orElseThrow(() -> {
+                    log.error("No se encontró la canción con ID: {}", songId);
+                    return new SongNotFoundException("No se encontró la canción con ID: " + songId, HttpStatus.NOT_FOUND);
+                });
 
-            // Verificar si la relación ya existe
-            if (playlistCancionRepository.existsByPlaylistIdPlaylistAndCancionIdCancion(playlistId, songId)) {
-                log.warn("La canción ya existe en la playlist");
-                throw new PlaylistUpdateException(
-                        "La canción ya existe en la playlist",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            // Crear nueva relación
-            PlaylistCancionEntity playlistCancion = new PlaylistCancionEntity();
-            playlistCancion.setPlaylist(playlist);
-            playlistCancion.setCancion(song);
-
-            // Guardar la relación
-            playlistCancionRepository.save(playlistCancion);
-
-            log.info("Canción {} agregada exitosamente a playlist {}", songId, playlistId);
-
-        } catch (PlaylistNotFoundException | SongNotFoundException e) {
-            throw e;
-        } catch (DataIntegrityViolationException e) {
-            log.error("Error de integridad de datos al agregar canción a playlist: {}", e.getMessage());
-            throw new PlaylistUpdateException(
-                    "Error al agregar la canción a la playlist - violación de integridad",
-                    HttpStatus.CONFLICT
-            );
+        // Idempotente: si la canción ya está en la playlist, no se inserta de nuevo.
+        if (playlistCancionRepository.existsByPlaylistIdPlaylistAndCancionIdCancion(playlistId, songId)) {
+            log.debug("La canción {} ya está en la playlist {} (idempotente)", songId, playlistId);
+            return;
         }
+
+        PlaylistCancionEntity playlistCancion = new PlaylistCancionEntity();
+        playlistCancion.setPlaylist(playlist);
+        playlistCancion.setCancion(song);
+        playlistCancion.setFechaAgregado(LocalDateTime.now());
+        playlistCancionRepository.save(playlistCancion);
+
+        log.info("Canción {} agregada exitosamente a playlist {}", songId, playlistId);
     }
 
     @Override
     @Transactional
     public void removeSongFromPlaylist(Long playlistId, Long songId) {
-        try {
-            log.info("Iniciando proceso de eliminar canción {} de playlist {}", songId, playlistId);
+        log.info("Iniciando proceso de eliminar canción {} de playlist {}", songId, playlistId);
 
-            // Validar que exista la playlist
-            PlaylistEntity playlist = playlistRepository.findById(playlistId)
-                    .orElseThrow(() -> {
-                        log.error("No se encontró la playlist con ID: {}", playlistId);
-                        return new PlaylistNotFoundException("No se encontró la playlist especificada");
-                    });
+        // Idempotente: quitar algo que no estaba no produce error (no 404).
+        playlistCancionRepository.deleteByPlaylistIdPlaylistAndCancionIdCancion(playlistId, songId);
 
-            // Validar que exista la relación
-            if (!playlistCancionRepository.existsByPlaylistIdPlaylistAndCancionIdCancion(playlistId, songId)) {
-                log.warn("La canción no existe en la playlist");
-                throw new PlaylistUpdateException(
-                        "La canción no existe en la playlist",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            // Eliminar la relación usando el metodo específico
-            playlistCancionRepository.deleteByPlaylistIdPlaylistAndCancionIdCancion(playlistId, songId);
-            log.info("Canción {} eliminada exitosamente de playlist {}", songId, playlistId);
-
-        } catch (PlaylistNotFoundException e) {
-            throw e;
-        } catch (DataIntegrityViolationException e) {
-            log.error("Error de integridad de datos al eliminar canción de playlist: {}", e.getMessage());
-            throw new PlaylistUpdateException(
-                    "Error al eliminar la canción de la playlist - violación de integridad",
-                    HttpStatus.CONFLICT
-            );
-        } catch (DataAccessException e) {
-            log.error("Error de base de datos al eliminar canción de playlist: {}", e.getMessage());
-            throw new PlaylistUpdateException(
-                    "Error al eliminar la canción de la playlist",
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
-        }
+        log.info("Canción {} eliminada de la playlist {} (si existía)", songId, playlistId);
     }
 
 
-    private PlaylistResponseDTO convertToDTO(PlaylistEntity playlist) {
+    private PlaylistResponseDTO convertToDTO(PlaylistEntity playlist, int songCount) {
         PlaylistResponseDTO dto = new PlaylistResponseDTO();
         dto.setPlaylistId(playlist.getIdPlaylist());
         dto.setName(playlist.getNombre());
@@ -484,6 +419,21 @@ public class PlaylistServiceImpl implements IPlaylistService {
         dto.setCoverImage(playlist.getImgPortada());
         dto.setCreationDate(playlist.getFechaCreacion());
         dto.setUserId(playlist.getUsuario().getIdUsuario());
+        dto.setSongCount(songCount);
         return dto;
+    }
+
+    /**
+     * Resuelve el número de canciones de varias playlists en una sola consulta (evita N+1).
+     */
+    private Map<Long, Integer> songCountsFor(List<PlaylistEntity> playlists) {
+        List<Long> ids = playlists.stream().map(PlaylistEntity::getIdPlaylist).toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return playlistCancionRepository.countSongsByPlaylistIds(ids).stream()
+                .collect(Collectors.toMap(
+                        PlaylistSongCountProjection::getPlaylistId,
+                        projection -> projection.getSongCount().intValue()));
     }
 }

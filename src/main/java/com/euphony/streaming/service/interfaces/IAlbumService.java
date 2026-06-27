@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Interfaz que define las operaciones de gestión de álbumes.
@@ -54,4 +55,13 @@ public interface IAlbumService {
      * @param id El identificador único del álbum a eliminar.
      */
     void deleteAlbum(Long id);
+
+    /**
+     * Obtiene los álbumes marcados como favoritos por un usuario, con el mismo
+     * {@link AlbumResponseDTO} (incluido el artista anidado) que el resto de listados.
+     *
+     * @param userId El identificador único del usuario (UUID).
+     * @return Lista de {@link AlbumResponseDTO} (vacía si el usuario no tiene álbumes favoritos).
+     */
+    List<AlbumResponseDTO> findFavoriteAlbumsByUser(UUID userId);
 }

@@ -26,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Implementación del servicio de gestión de álbumes.
@@ -176,6 +177,15 @@ public class AlbumServiceImpl implements IAlbumService {
             log.info("Álbum eliminado exitosamente con ID: {}", id);
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public List<AlbumResponseDTO> findFavoriteAlbumsByUser(UUID userId) {
+        log.debug("Buscando álbumes favoritos del usuario: {}", userId);
+        return albumRepository.findFavoriteAlbumsByUser(userId).stream()
+                .map(this::mapToAlbumResponseDTO)
+                .toList();
+    }
+
     private void validateAlbumUpdateRequest(AlbumRequestDTO albumRequestDTO, Long id) {
         validateAlbumRequest(albumRequestDTO);
         validateTitleLength(albumRequestDTO.getTitle());
@@ -303,6 +313,7 @@ public class AlbumServiceImpl implements IAlbumService {
                 .name(artistaEntity.getNombre())
                 .biography(artistaEntity.getBiografia())
                 .country(artistaEntity.getPais())
+                .imageUrl(artistaEntity.getImagen())
                 .socialNetworks(artistaEntity.getRedesSociales())
                 .isVerified(artistaEntity.getIsVerified())
                 .build();

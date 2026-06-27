@@ -97,6 +97,20 @@ public class SongServiceImpl implements ISongService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SongResponseDTO> findFavoriteSongsByUser(UUID userId) {
+        log.info("Buscando canciones favoritas del usuario: {}", userId);
+        return toSongResponseDTOs(cancionRepository.findFavoriteSongsByUser(userId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SongResponseDTO> findSongsByPlaylist(Long playlistId) {
+        log.info("Buscando canciones de la playlist: {}", playlistId);
+        return toSongResponseDTOs(cancionRepository.findSongsByPlaylistId(playlistId));
+    }
+
+    @Override
     public Path getSongFilePath(Long id) {
         CancionEntity song = cancionRepository.findById(id)
                 .orElseThrow(() -> new SongNotFoundException("Canción no encontrada", HttpStatus.NOT_FOUND));

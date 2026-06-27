@@ -2,7 +2,7 @@ package com.euphony.streaming.service.interfaces;
 
 import com.euphony.streaming.dto.request.PlaylistRequestDTO;
 import com.euphony.streaming.dto.response.PlaylistResponseDTO;
-import com.euphony.streaming.dto.response.SongInPlaylistResponseDTO;
+import com.euphony.streaming.dto.response.SongResponseDTO;
 
 import java.util.List;
 import java.util.UUID;
@@ -59,12 +59,13 @@ public interface IPlaylistService {
     void addSongToPlaylist(Long playlistId, Long songId);
 
     /**
-     * Obtiene las canciones de una lista de reproducción.
+     * Obtiene las canciones de una lista de reproducción con el {@link SongResponseDTO} enriquecido
+     * (artista, álbum, portada, géneros), sin N+1 y en el orden en que se añadieron.
      *
      * @param playlistId El identificador único de la lista de reproducción.
-     * @return Lista de {@link SongInPlaylistResponseDTO} con la información de las canciones de la lista de reproducción.
+     * @return Lista de {@link SongResponseDTO} (vacía si la playlist no tiene canciones).
      */
-    List<SongInPlaylistResponseDTO> getPlaylistSongs(Long playlistId);
+    List<SongResponseDTO> getPlaylistSongs(Long playlistId);
 
     /**
      * Elimina una canción de una lista de reproducción.

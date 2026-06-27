@@ -27,6 +27,11 @@ public class ArtistResponseDTO {
     @Schema(description = "País de origen del artista", example = "USA")
     private String country;
 
+    @Schema(description = "URL/ruta relativa de la imagen del artista, servida por /uploads/images/... " +
+            "Es null cuando el artista no tiene imagen.",
+            example = "/uploads/images/artist_1_abc123.jpg", nullable = true)
+    private String imageUrl;
+
     @Schema(description = "Redes sociales del artista", example = "{\"Twitter\": \"@johndoe\", \"Instagram\": \"johndoe\"}")
     private Map<String, String> socialNetworks;
 
