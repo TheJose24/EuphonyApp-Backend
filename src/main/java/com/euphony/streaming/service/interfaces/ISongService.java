@@ -66,4 +66,20 @@ public interface ISongService {
      * @return Ruta del archivo de la canción.
      */
     Path getSongFilePath(Long id);
+
+    /**
+     * Obtiene las canciones de un álbum.
+     *
+     * @param albumId El identificador único del álbum.
+     * @return Lista de {@link SongResponseDTO} de las canciones del álbum (vacía si el álbum no tiene canciones).
+     */
+    List<SongResponseDTO> findSongsByAlbum(Long albumId);
+
+    /**
+     * Obtiene las canciones de un artista.
+     *
+     * @param artistId El identificador único del artista.
+     * @return Lista de {@link SongResponseDTO} de las canciones del artista (vacía si el artista no tiene canciones).
+     */
+    List<SongResponseDTO> findSongsByArtist(Long artistId);
 }

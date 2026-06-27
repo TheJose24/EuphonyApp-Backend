@@ -50,22 +50,15 @@ public class SongServiceImpl implements ISongService {
     private static final String ERROR_ARTIST_NOT_FOUND = "Artista no encontrado: %s";
     private static final String ERROR_ALBUM_NOT_FOUND = "Álbum no encontrado";
     private static final String ERROR_SONG_NOT_FOUND = "Canción no encontrada con ID %d";
+    private static final String ERROR_ALBUM_NOT_FOUND_BY_ID = "Álbum no encontrado con ID %d";
+    private static final String ERROR_ARTIST_NOT_FOUND_BY_ID = "Artista no encontrado con ID %d";
 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "songs", key = "'all'")
     public List<SongResponseDTO> findAllSongs() {
         log.info("Buscando todas las canciones");
-        List<CancionEntity> songs = cancionRepository.findAllWithArtistAndAlbum();
-
-        // Se resuelven los géneros de todas las canciones en una sola consulta (evita N+1).
-        Map<Long, Set<String>> genresBySong = fetchGenresBySongIds(
-                songs.stream().map(CancionEntity::getIdCancion).toList());
-
-        return songs.stream()
-                .map(song -> mapToSongResponseDTO(song,
-                        genresBySong.getOrDefault(song.getIdCancion(), Set.of())))
-                .toList();
+        return toSongResponseDTOs(cancionRepository.findAllWithArtistAndAlbum());
     }
 
     @Override
@@ -79,6 +72,28 @@ public class SongServiceImpl implements ISongService {
                         String.format(ERROR_SONG_NOT_FOUND, songId),
                         HttpStatus.NOT_FOUND
                 ));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SongResponseDTO> findSongsByAlbum(Long albumId) {
+        log.info("Buscando canciones del álbum: {}", albumId);
+        if (!albumRepository.existsById(albumId)) {
+            throw new AlbumNotFoundException(
+                    String.format(ERROR_ALBUM_NOT_FOUND_BY_ID, albumId), HttpStatus.NOT_FOUND);
+        }
+        return toSongResponseDTOs(cancionRepository.findByAlbumIdWithArtistAndAlbum(albumId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SongResponseDTO> findSongsByArtist(Long artistId) {
+        log.info("Buscando canciones del artista: {}", artistId);
+        if (!artistaRepository.existsById(artistId)) {
+            throw new ArtistNotFoundException(
+                    String.format(ERROR_ARTIST_NOT_FOUND_BY_ID, artistId), HttpStatus.NOT_FOUND);
+        }
+        return toSongResponseDTOs(cancionRepository.findByArtistIdWithArtistAndAlbum(artistId));
     }
 
     @Override
@@ -353,6 +368,20 @@ public class SongServiceImpl implements ISongService {
         songGenre.setGenero(genre);
         cancionGeneroRepository.save(songGenre);
         log.info("Género '{}' asociado a la canción '{}'", genreName, song.getTitulo());
+    }
+
+    /**
+     * Convierte una lista de canciones en sus DTOs, resolviendo los géneros de todas
+     * ellas en una sola consulta batcheada (evita N+1). Patrón compartido por los
+     * listados: todas, por álbum y por artista.
+     */
+    private List<SongResponseDTO> toSongResponseDTOs(List<CancionEntity> songs) {
+        Map<Long, Set<String>> genresBySong = fetchGenresBySongIds(
+                songs.stream().map(CancionEntity::getIdCancion).toList());
+        return songs.stream()
+                .map(song -> mapToSongResponseDTO(song,
+                        genresBySong.getOrDefault(song.getIdCancion(), Set.of())))
+                .toList();
     }
 
     /**
